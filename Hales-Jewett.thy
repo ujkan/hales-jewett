@@ -96,16 +96,44 @@ lemma "A \<noteq> {} \<Longrightarrow> A \<rightarrow>\<^sub>E {} = {}"
 lemma "A = {} \<Longrightarrow> \<exists>!f. f \<in> A \<rightarrow>\<^sub>E B"
   by simp
   
-
-lemma "(\<forall>r. \<exists>N'. \<forall>N \<ge> N'. \<chi> \<in> (cube N t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. isLine L N t \<and> \<chi> ` (L ` {..<t}) = {c})) \<Longrightarrow> (\<forall>r. \<exists>M'. \<forall>M \<ge> M'. \<chi> \<in> (cube M (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. isSubspace S 1 M (t + 1) \<and> (\<forall>i \<in> {..M}. \<exists>c < r. \<chi> ` (classes M t i) = {c})))"
+lemma "B \<noteq> {} \<Longrightarrow> A \<rightarrow>\<^sub>E B \<noteq> {}"
+  
+  by (meson PiE_eq_empty_iff)
+lemma assumes "t > 0" "(\<forall>r. \<exists>N'. \<forall>N \<ge> N'. \<chi> \<in> (cube N t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. isLine L N t \<and> \<chi> ` (L ` {..<t}) = {c}))" shows "(\<forall>r. \<exists>M'. \<forall>M \<ge> M'. \<chi> \<in> (cube M (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. isSubspace S 1 M (t + 1) \<and> (\<forall>i \<in> {..M}. \<exists>c < r. \<chi> ` (classes M t i) = {c})))"
 proof
   fix r
-  assume "\<forall>r. \<exists>N'. \<forall>N\<ge>N'. \<chi> \<in> cube N t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> isLine L N t \<and> \<chi> ` L ` {..<t} = {c})"
-  then have "\<exists>N'. \<forall>N\<ge>N'. \<chi> \<in> cube N t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> isLine L N t \<and> \<chi> ` L ` {..<t} = {c})" by simp
+  have "\<exists>N'. \<forall>N\<ge>N'. \<chi> \<in> cube N t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> isLine L N t \<and> \<chi> ` L ` {..<t} = {c})" using assms(2) by simp
   then obtain N' where N'_def: "\<forall>N\<ge>N'. \<chi> \<in> cube N t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> isLine L N t \<and> \<chi> ` L ` {..<t} = {c})" by blast
   then have "\<chi> \<in> cube N' t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> isLine L N' t \<and> \<chi> ` L ` {..<t} = {c})" by simp
 
+  have *: "\<forall>n. cube n (t + 1) \<noteq> {}" using PiE_eq_empty_iff unfolding cube_def assms(1) 
+    by (metis add.right_neutral assms(1) lessThan_0 lessThan_eq_iff less_add_eq_less less_imp_le less_numeral_extra(1) not_less) 
+  show "\<exists>M'. \<forall>M\<ge>M'. \<chi> \<in> cube M (t + 1) \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>S. isSubspace S 1 M (t + 1) \<and> (\<forall>i\<in>{..M}. \<exists>c<r. \<chi> ` classes M t i = {c}))" 
+  proof (cases r)
+    case 0
+    then have "{..<r} = {}" by simp
+    then have "\<forall>n. cube n (t + 1) \<rightarrow>\<^sub>E {..<r} = {}" using * by auto
+    then show ?thesis by simp
+  next
+    case (Suc nat)
+    then have "{..<r} ~= {}" by auto
+    then have "\<forall>n. cube n (t + 1) \<rightarrow>\<^sub>E {..<r} \<noteq> {}" using PiE_eq_empty_iff by metis
+    then obtain \<chi> where \<chi>_def: "\<chi> \<in> cube N' (t + 1) \<rightarrow>\<^sub>E {..<r}" by auto
+    have "\<forall>M\<ge>N'. \<chi> \<in> cube M (t + 1) \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>S. isSubspace S 1 M (t + 1) \<and> (\<forall>i\<in>{..M}. \<exists>c<r. \<chi> ` classes M t i = {c}))"
+    proof (rule allI, rule impI, rule impI)
+      fix M
+      assume asms: "N' \<le> M" "\<chi> \<in> cube M (t + 1) \<rightarrow>\<^sub>E {..<r}"
+      let ?S = "{x . x \<in> cube M (t + 1) \<and> (\<forall>j<M. x j \<noteq> t)}"
+      (* struggling to smoothly formalize: "Inside cube M (t + 1) lies cube M t, those points without coordinate value t. *)
+      
+      
+
+
+    qed
+    then show ?thesis sorry
   qed
+
+  
 
 
 
