@@ -53,7 +53,9 @@ definition isSubspace
   where "isSubspace S k n t \<equiv> (\<exists>B f f'. disjoint (B ` {..k}) \<and> (\<Union>(B ` {..k})) = {..<n} \<and> (\<forall>i\<in>{..<k}. B i \<noteq> {}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> f' \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> f' = (\<lambda>y i. (if i \<in> B k then f i else y (SOME j. j < k \<and> i \<in> B j))) \<and> S = f' ` (cube k t))"
 
 *)
-
+lemma AUX: "cube n t \<subseteq> cube n (t + 1)"
+  unfolding cube_def
+  by (meson PiE_mono le_add1 lessThan_subset_iff)
 
 definition classes
   where "classes n t \<equiv> (\<lambda>i. {x . x \<in> (cube n (t + 1)) \<and> {t} = x ` {(n - i)..<n} \<and> t \<notin> x ` {..<(n - i)}})"
@@ -99,13 +101,16 @@ lemma "A = {} \<Longrightarrow> \<exists>!f. f \<in> A \<rightarrow>\<^sub>E B"
 lemma "B \<noteq> {} \<Longrightarrow> A \<rightarrow>\<^sub>E B \<noteq> {}"
   
   by (meson PiE_eq_empty_iff)
-lemma assumes "t > 0" "(\<forall>r. \<exists>N'. \<forall>N \<ge> N'. \<chi> \<in> (cube N t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. isLine L N t \<and> \<chi> ` (L ` {..<t}) = {c}))" shows "(\<forall>r. \<exists>M'. \<forall>M \<ge> M'. \<chi> \<in> (cube M (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. isSubspace S 1 M (t + 1) \<and> (\<forall>i \<in> {..M}. \<exists>c < r. \<chi> ` (classes M t i) = {c})))"
+lemma thm4_k_1: assumes "t > 0" "(\<forall>r. \<exists>N'. \<forall>N \<ge> N'. \<chi> \<in> (cube N t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. isLine L N t \<and> \<chi> ` (L ` {..<t}) = {c}))" shows "(\<forall>r. \<exists>M'. \<forall>M \<ge> M'. \<chi> \<in> (cube M (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. isSubspace S 1 M (t + 1) \<and> (\<forall>i \<in> {..M}. \<exists>c < r. \<chi> ` (classes M t i) = {c})))"
 proof
   fix r
   have "\<exists>N'. \<forall>N\<ge>N'. \<chi> \<in> cube N t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> isLine L N t \<and> \<chi> ` L ` {..<t} = {c})" using assms(2) by simp
   then obtain N' where N'_def: "\<forall>N\<ge>N'. \<chi> \<in> cube N t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> isLine L N t \<and> \<chi> ` L ` {..<t} = {c})" by blast
   then have "\<chi> \<in> cube N' t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> isLine L N' t \<and> \<chi> ` L ` {..<t} = {c})" by simp
 
+  have **: "\<forall>n. cube n t \<noteq> {}" 
+    by (metis PiE_eq_empty_iff assms(1) cube_def lessThan_0 lessThan_eq_iff neq_iff)
+  
   have *: "\<forall>n. cube n (t + 1) \<noteq> {}" using PiE_eq_empty_iff unfolding cube_def assms(1) 
     by (metis add.right_neutral assms(1) lessThan_0 lessThan_eq_iff less_add_eq_less less_imp_le less_numeral_extra(1) not_less) 
   show "\<exists>M'. \<forall>M\<ge>M'. \<chi> \<in> cube M (t + 1) \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>S. isSubspace S 1 M (t + 1) \<and> (\<forall>i\<in>{..M}. \<exists>c<r. \<chi> ` classes M t i = {c}))" 
@@ -119,14 +124,42 @@ proof
     then have "{..<r} ~= {}" by auto
     then have "\<forall>n. cube n (t + 1) \<rightarrow>\<^sub>E {..<r} \<noteq> {}" using PiE_eq_empty_iff by metis
     then obtain \<chi> where \<chi>_def: "\<chi> \<in> cube N' (t + 1) \<rightarrow>\<^sub>E {..<r}" by auto
+
+    from Suc have "{..<r} ~= {}" by auto
+    then have "\<forall>n. cube n (t) \<rightarrow>\<^sub>E {..<r} \<noteq> {}" using PiE_eq_empty_iff by metis
+
+    
     have "\<forall>M\<ge>N'. \<chi> \<in> cube M (t + 1) \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>S. isSubspace S 1 M (t + 1) \<and> (\<forall>i\<in>{..M}. \<exists>c<r. \<chi> ` classes M t i = {c}))"
     proof (rule allI, rule impI, rule impI)
       fix M
       assume asms: "N' \<le> M" "\<chi> \<in> cube M (t + 1) \<rightarrow>\<^sub>E {..<r}"
       let ?S = "{x . x \<in> cube M (t + 1) \<and> (\<forall>j<M. x j \<noteq> t)}"
-      (* struggling to smoothly formalize: "Inside cube M (t + 1) lies cube M t, those points without coordinate value t. *)
-      
-      
+      {
+      have "?S \<subseteq> cube M t" 
+      proof 
+        fix x
+        assume a: "x \<in> {x . x \<in> cube M (t + 1) \<and> (\<forall>j<M. x j \<noteq> t)}"
+        then have "\<forall>j\<in>{..<M}. x j \<in> {..<t + 1}" unfolding cube_def by blast
+        then have "\<forall>j<M. x j \<in> {..<t} \<union> {t}" by force
+        then have "\<forall>j<M. x j \<in> {..<t}" using a by auto
+
+        moreover have "\<forall>j. \<not>(j\<in>{..<M}) \<longrightarrow> x j = undefined" using a unfolding cube_def by blast
+        ultimately show "x \<in> cube M t" unfolding cube_def by blast
+      qed
+    }
+    moreover
+    {
+      have "cube M t \<subseteq> ?S"
+      proof
+        fix x
+        assume a: "x \<in> cube M t"
+        then have "x \<in> cube M (t + 1)" using AUX  by auto
+        moreover have "\<forall>j\<in>{..<M}. x j \<in> {..<t}" using a unfolding cube_def by blast
+        moreover have "\<forall>j<M. x j \<noteq> t" using calculation(2) by blast
+        ultimately show "x \<in> {x \<in> cube M (t + 1). \<forall>j<M. x j \<noteq> t} " by simp
+      qed
+    }
+    ultimately have ***: "?S = cube M t" by simp
 
 
     qed
