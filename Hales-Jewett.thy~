@@ -12,8 +12,16 @@ Goals for next week (8 Nov 2021)
 + write comments, clean things up
 
 Goals for next week (15 Nov 2021)
-* finish the base case
++ finish the base case
 * start on the induction step / outline
+
+Notes (14 nov 2021)
+  * base case proof not strictly formulated; have proven only for particular N', not \<forall>N\<ge>N'.
+
+Goals for next week (22 Nov 2021)
+* clean up a few things in the base case
+* base case trivialities (t = 0, n = 0)
+* start on the induction step /outline
 
 \<close>
 
@@ -27,6 +35,15 @@ text \<open>Attempting to show (card {} ->E A) = 1\<close>
 lemma aux: "\<exists>!f. f \<in> {} \<rightarrow>\<^sub>E A " 
   by simp
 
+lemma "(\<lambda>x. undefined) \<in> {} \<rightarrow>\<^sub>E A"
+  by simp
+lemma AUX: "cube n t \<subseteq> cube n (t + 1)"
+  unfolding cube_def
+  by (meson PiE_mono le_add1 lessThan_subset_iff)
+
+
+lemma cube0_def: "cube 0 t = {\<lambda>x. undefined}"
+  unfolding cube_def by simp
 lemma "card ({} \<rightarrow>\<^sub>E A) = 1"
   using aux by auto
 
@@ -35,34 +52,136 @@ lemma cube_card: "card ({..<n::nat} \<rightarrow>\<^sub>E {..<t::nat}) = t ^ n"
   apply (subst card_PiE)
   by auto
   
-definition isLine :: "(nat \<Rightarrow> (nat \<Rightarrow> nat)) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool"
-  where "isLine L n t \<equiv> (L \<in> {..<t} \<rightarrow>\<^sub>E (cube n t) \<and> ((\<forall>j<n. (\<forall>x<t. \<forall>y<t. L x j =  L y j) \<or> (\<forall>s<t. L s j = s)) \<and> (\<exists>j < n. (\<forall>s < t. L s j = s))))"
+definition is_line :: "(nat \<Rightarrow> (nat \<Rightarrow> nat)) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool"
+  where "is_line L n t \<equiv> (L \<in> {..<t} \<rightarrow>\<^sub>E (cube n t) \<and> ((\<forall>j<n. (\<forall>x<t. \<forall>y<t. L x j =  L y j) \<or> (\<forall>s<t. L s j = s)) \<and> (\<exists>j < n. (\<forall>s < t. L s j = s))))"
 
-lemma "isLine L n t \<Longrightarrow> L ` {..<t} \<subseteq> cube n t"
-  unfolding cube_def isLine_def
+lemma is_line_elim:
+  assumes "is_line L n t" and "t > 1"
+  shows "\<exists>B\<^sub>0 B\<^sub>1. B\<^sub>0 \<union> B\<^sub>1 = {..<n} \<and> B\<^sub>0 \<inter> B\<^sub>1 = {} \<and> B\<^sub>0 \<noteq> {} \<and> (\<forall>j \<in> B\<^sub>1. (\<forall>x<t. \<forall>y<t. L x j = L y j)) \<and> (\<forall>j \<in> B\<^sub>0. (\<forall>s<t. L s j = s))"
+proof-
+  define B0 where "B0 = {j \<in> {..<n}. (\<forall>s<t. L s j = s)}"
+  define B1 where "B1 = {j \<in> {..<n}. (\<forall>x<t. \<forall>y<t. L x j = L y j)}"
+
+  from assms have "B0 \<noteq> {}" unfolding is_line_def B0_def by simp
+  moreover from assms have "B0 \<union> B1 = {..<n}" unfolding is_line_def B0_def B1_def by auto
+  moreover have "\<forall>j \<in> B0. \<forall>s<t. L s j = s" unfolding B0_def by simp
+  moreover have "\<forall>j \<in> B1. \<forall>x<t. \<forall>y<t. L x j = L y j" unfolding B1_def by blast
+  moreover have "B0 \<inter> B1 = {}" 
+  proof(safe)
+    fix i assume "i \<in> B0" "i\<in>B1"
+    then have "(\<forall>s < t. L s i = s) " unfolding B0_def by simp
+    then have "\<not>(\<forall>x<t. \<forall>y<t. L x i = L y i)" using assms(2) less_trans 
+      by (metis less_numeral_extra(1) zero_neq_one)
+    then have False using \<open>i \<in> B1\<close> unfolding B1_def by blast
+    then show "i \<in> {}" by simp
+  qed
+  ultimately show ?thesis by blast
+qed
+
+
+lemma aux2: "is_line L n t \<Longrightarrow> (\<forall>s<t. L s \<in> cube n t)"
+  unfolding cube_def is_line_def
+  by auto     
+
+lemma aux2_exp: "is_line L n t \<Longrightarrow> (\<forall>s<t. \<forall>j<n. L s j \<in> {..<t})" 
+  using aux2 unfolding cube_def by blast
+
+lemma 
+  assumes "is_line L n t" and "t > 1"
+  shows "\<exists>L'. is_line L' n (t + 1) \<and> (\<forall>i\<in>{..<n}.\<forall>s<t. L s i = L' s i)"
+proof-
+  from assms obtain B0 B1 where Bdefs: "B0 \<union> B1 = {..<n} \<and> B0 \<inter> B1 = {} \<and> B0 \<noteq> {} \<and> (\<forall>j \<in> B1. (\<forall>x<t. \<forall>y<t. L x j = L y j)) \<and> (\<forall>j \<in> B0. (\<forall>s<t. L s j = s))" using is_line_elim by presburger
+  define L' where "L' \<equiv> L(t:=(\<lambda>i. if i \<in> B0 then t else (if i \<in> B1 then L 0 i else undefined)))"
+  have "L' \<in> {..<t+1} \<rightarrow>\<^sub>E (cube n (t + 1))"
+  proof
+    fix s assume "s \<in> {..<t+1}"
+    then consider "s < t" | "s = t" by fastforce
+    then show "L' s \<in> cube n (t + 1)"
+    proof (cases)
+      case 1
+      then show ?thesis using assms(1) AUX unfolding L'_def is_line_def by auto
+    next
+      case 2
+      show ?thesis 
+      proof (unfold cube_def; intro PiE_I)
+        fix j assume "j\<in>{..<n}"
+        then have "j \<in> B0 \<union> B1" using Bdefs by simp
+        then have "L' s j = t \<or> L' s j = L 0 j" using 2 unfolding L'_def by auto
+        then show "L' s j \<in> {..<t+1}" using assms(1) aux2_exp[of "L" "n" "t"] 
+          by (metis "2" \<open>j \<in> {..<n}\<close> \<open>s \<in> {..<t + 1}\<close> assms(2) lessThan_iff less_numeral_extra(1) less_trans)
+      next
+        fix j assume "j \<notin>{..<n}"
+        then have "j \<notin> B0 \<union> B1" using Bdefs by simp
+        then show "L' s j = undefined" unfolding L'_def 
+          by (simp add: "2")
+      qed
+    qed
+  next
+    fix s assume "s \<notin> {..<t+1}"
+    then show "L' s = undefined" using assms(1) unfolding L'_def is_line_def 
+      by (metis (no_types, lifting) PiE_restrict add.commute fun_upd_apply lessThan_iff less_Suc_eq plus_1_eq_Suc restrict_apply)
+  qed
+
+  show ?thesis sorry
+qed
+
+lemma "is_line L n t \<Longrightarrow> L ` {..<t} \<subseteq> cube n t"
+  unfolding cube_def is_line_def
   by auto
 
-lemma aux2: "isLine L n t \<Longrightarrow> (\<forall>s<t. L s \<in> cube n t)"
-  unfolding cube_def isLine_def
-  by auto
 
 term disjoint_family_on
 term partition_on
-definition isSubspace
-  where "isSubspace f' k n t \<equiv> (\<exists>B f. disjoint_family_on B {..k} \<and> \<Union>(B ` {..k}) = {..<n} \<and> ({} \<notin> B ` {..<k}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> f' \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> (\<forall>y \<in> cube k t. (\<forall>i \<in> B k. f' y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (f' y) i = y j)))"
+definition is_subspace
+  where "is_subspace f' k n t \<equiv> (\<exists>B f. disjoint_family_on B {..k} \<and> \<Union>(B ` {..k}) = {..<n} \<and> ({} \<notin> B ` {..<k}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> f' \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> (\<forall>y \<in> cube k t. (\<forall>i \<in> B k. f' y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (f' y) i = y j)))"
 
-lemma AUX: "cube n t \<subseteq> cube n (t + 1)"
-  unfolding cube_def
-  by (meson PiE_mono le_add1 lessThan_subset_iff)
+lemma dim0_subspace: assumes "t > 0" shows "\<exists>S. is_subspace S 0 n t"
+proof-
+  define B where "B \<equiv> (\<lambda>x::nat. undefined)(0:={..<n})"
+
+  have "{..<t} \<noteq> {}" using assms by auto
+  then have "\<exists>f. f \<in> (B 0) \<rightarrow>\<^sub>E {..<t}" 
+    by (meson PiE_eq_empty_iff all_not_in_conv)
+  then obtain f where f_prop: "f \<in> (B 0) \<rightarrow>\<^sub>E {..<t}" by blast
+  define S where "S \<equiv> (\<lambda>x::(nat \<Rightarrow> nat). undefined)((\<lambda>x. undefined):=f)"
+
+  have "disjoint_family_on B {..0}" unfolding disjoint_family_on_def by simp
+  moreover have "\<Union>(B ` {..0}) = {..<n}" unfolding B_def by simp
+  moreover have "({} \<notin> B ` {..<0})" by simp
+  moreover have "S \<in> (cube 0 t) \<rightarrow>\<^sub>E (cube n t)"
+    using f_prop PiE_I unfolding B_def cube_def S_def by auto
+  moreover have "(\<forall>y \<in> cube 0 t. (\<forall>i \<in> B 0. S y i = f i) \<and> (\<forall>j<0. \<forall>i \<in> B j. (S y) i = y j))" unfolding cube_def S_def by force
+  ultimately have "is_subspace S 0 n t" using f_prop unfolding is_subspace_def by blast
+  then show "\<exists>S. is_subspace S 0 n t" by auto
+qed
 
 text \<open>Defining the equivalence classes of (cube n (t + 1)). {classes n t 0, ..., classes n t n}\<close>
 definition classes
   where "classes n t \<equiv> (\<lambda>i. {x . x \<in> (cube n (t + 1)) \<and> (\<forall>u \<in> {(n-i)..<n}. x u = t) \<and> t \<notin> x ` {..<(n - i)}})"
 
 definition layered_subspace
-  where "layered_subspace S \<chi> \<equiv> (\<exists>k n t. isSubspace S k n t \<and> (\<forall>i \<in> {..n}. \<exists>c::nat. \<chi> ` (classes n t i) = {c}))"
+  where "layered_subspace S k n t r \<chi> \<equiv> (is_subspace S k n (t + 1) \<and> (\<forall>i \<in> {..k}. \<exists>c<r. \<forall>x \<in> classes k t i. \<chi> (S x) = c))"
 
-lemma "isSubspace S 1 n t \<Longrightarrow> layered_subspace S \<chi> \<Longrightarrow> (\<exists>c. \<forall>y\<in>cube 1 t. \<chi> (S y) = c)" sorry
+lemma dim0_layered_subspace_ex: assumes "\<chi> \<in> (cube n (t + 1)) \<rightarrow>\<^sub>E {..<r::nat}" shows "\<exists>S. layered_subspace S (0::nat) n t r \<chi>"
+proof-
+  obtain S where S_prop: "is_subspace S (0::nat) n (t+1)" using dim0_subspace by auto
+
+(* {x . x \<in> (cube 0 (t + 1)) \<and> (\<forall>u \<in> {(0-0)..<0}. x u = t) \<and> t \<notin> x ` {..<(0 - 0)}} *)
+  have "classes (0::nat) t 0 = cube 0 (t+1)" unfolding classes_def by simp
+  moreover have "(\<forall>i \<in> {..0::nat}. \<exists>c<r. \<forall>x \<in> classes (0::nat) t i. \<chi> (S x) = c)"
+  proof(safe)
+    fix i
+    have "\<forall>x \<in> classes 0 t 0. \<chi> (S x) = \<chi> (S (\<lambda>x. undefined))" using cube0_def 
+      using \<open>classes 0 t 0 = cube 0 (t + 1)\<close> by auto
+    moreover have "S (\<lambda>x. undefined) \<in> cube n (t+1)" using S_prop cube0_def unfolding is_subspace_def by auto
+    then have "\<chi> (S (\<lambda>x. undefined)) < r" using assms by auto
+    ultimately show "\<exists>c<r. \<forall>x\<in>classes 0 t 0. \<chi> (S x) = c" by auto
+  qed
+  ultimately have "layered_subspace S 0 n t r \<chi>" using S_prop unfolding layered_subspace_def by blast
+  then show "\<exists>S. layered_subspace S (0::nat) n t r \<chi>" by auto
+qed
+
+lemma "is_subspace S 1 n t \<Longrightarrow> layered_subspace S 1 n t r \<chi> \<Longrightarrow> (\<exists>c. \<forall>y\<in>cube 1 t. \<chi> (S y) = c)" sorry
 
 text \<open>Proving they are equivalence classes.\<close>
 
@@ -108,7 +227,7 @@ proof (rule ccontr)
 qed
 
 text \<open>LHJ(r, t, k).\<close>
-lemma "\<forall>\<chi> r t k. \<exists>M'. \<forall>M \<ge> M'. \<chi> \<in> (cube M (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. isSubspace S k M (t + 1) \<and> (\<forall>i \<in> {..M}. \<exists>c < r. \<chi> ` (classes M t i) = {c}))"
+lemma "\<forall>\<chi> r t k. \<exists>M'. \<forall>M \<ge> M'. \<chi> \<in> (cube M (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. is_subspace S k M (t + 1) \<and> (\<forall>i \<in> {..M}. \<exists>c < r. \<chi> ` (classes M t i) = {c}))"
   sorry
 
 text \<open>Experiments to see how \<rightarrow> behaves.\<close>
@@ -186,33 +305,28 @@ lemma bij_domain_PiE:
     shows "(restrict (g \<circ> f) A1) \<in> A1 \<rightarrow>\<^sub>E B"
   using bij_betwE assms by fastforce
 
-
-text \<open>Should follow since cube k t subset of cube k (t + 1). At least, S is a subset of cube n (t + 1).\<close>
-lemma subspace_suc_t: "isSubspace S k n t \<Longrightarrow> isSubspace S k n (t+1)"
-  unfolding isSubspace_def using AUX sorry
-
 lemma props_over_bij: "bij_betw h X Y \<Longrightarrow> (\<forall>x \<in> X. P a x) \<Longrightarrow> (\<forall>x \<in> X. P a x = Q a (h x)) \<Longrightarrow> (\<forall>y \<in> Y. Q a y)"
   by (smt (verit, ccfv_SIG) bij_betwE bij_betw_the_inv_into f_the_inv_into_f_bij_betw)
 
 
 text \<open>Relating lines and 1-dimensional subspaces.\<close>
 (* use assumes and shows *)
-lemma line_is_1dim_subspace: "n > 0 \<Longrightarrow> t > 1 \<Longrightarrow> isLine L n t \<Longrightarrow> isSubspace (restrict (\<lambda>y. L (y 0)) (cube 1 t)) 1 n t"
+lemma line_is_1dim_subspace: "n > 0 \<Longrightarrow> t > 1 \<Longrightarrow> is_line L n t \<Longrightarrow> is_subspace (restrict (\<lambda>y. L (y 0)) (cube 1 t)) 1 n t"
 proof -
-  assume assms: " n > 0" " 1 < t" "isLine L n t"
+  assume assms: "n > 0" "1 < t" "is_line L n t"
   let ?B1 = "{i::nat . i < n \<and> (\<forall>x<t. \<forall>y<t. L x i =  L y i)}"
   let ?B0 = "{i::nat . i < n \<and> (\<forall>s < t. L s i = s)}"
   let ?K = "(\<lambda>i::nat. {}::nat set)(0:=?B0, 1:=?B1)"
-  have "(?B0) \<noteq> {}" using assms(3) unfolding isLine_def by simp
+  have "(?B0) \<noteq> {}" using assms(3) unfolding is_line_def by simp
 
-  have L1: "?B0 \<union> ?B1 = {..<n}" using assms(3) unfolding isLine_def by auto
+  have L1: "?B0 \<union> ?B1 = {..<n}" using assms(3) unfolding is_line_def by auto
 
   have "\<forall>i < n. (\<forall>s < t. L s i = s) \<longrightarrow> \<not>(\<forall>x<t. \<forall>y<t. L x i =  L y i)" using assms(2) 
     using less_trans by auto 
   then have *:"\<forall>i \<in> ?B1. i \<notin>?B0" by blast
 
   have "\<forall>i < n. (\<forall>x<t. \<forall>y<t. L x i =  L y i) \<longrightarrow> \<not>(\<forall>s < t. L s i = s)" 
-  proof(rule allI, rule impI, rule impI)
+  proof(intro allI impI)
     fix i
     assume asm: "i<n" "\<forall>x<t. \<forall>y<t. L x i = L y i"
     have "L 0 i = L 1 i" using assms(2) asm(1,2) 
@@ -250,7 +364,7 @@ proof -
     have g: " 0 \<in> {..<t}" using assms(2) by simp
     have h: "i \<in> {..<n}" using * by simp
     
-    have "\<forall>a \<in> {..<t}. \<forall>b \<in> {..<n}. L a b \<in> {..<t}" using assms(3) unfolding isLine_def cube_def by auto
+    have "\<forall>a \<in> {..<t}. \<forall>b \<in> {..<n}. L a b \<in> {..<t}" using assms(3) unfolding is_line_def cube_def by auto
     then have "L 0 i \<in> {..<t}" using g h by simp
     then show "?f i \<in> {..<t}" using \<open>?f i = L 0 i\<close> by simp
   next
@@ -260,7 +374,7 @@ proof -
   qed
 
 
-  have L_prop: "L \<in> {..<t} \<rightarrow>\<^sub>E (cube n t)" using assms(3) by (simp add: isLine_def)
+  have L_prop: "L \<in> {..<t} \<rightarrow>\<^sub>E (cube n t)" using assms(3) by (simp add: is_line_def)
   let ?L = "(\<lambda>y \<in> cube 1 t. L (y 0))"
   have A5: "?L \<in> (cube 1 t) \<rightarrow>\<^sub>E (cube n t)"
     using bij_domain_PiE[of "(\<lambda>f. f 0)" "(cube 1 t)" "{..<t}" "L" "cube n t"] one_dim_cube_eq_nat_set[of "t"] L_prop by auto
@@ -278,7 +392,7 @@ proof -
       then have "?f i = L 0 i" 
         by meson
       moreover have "?L y i = L (y 0) i" using \<open>y \<in> cube 1 t\<close> by simp
-      moreover have "L (y 0) i = L 0 i" using assms(3) \<open>i \<in> ?K 1\<close> unfolding isLine_def 
+      moreover have "L (y 0) i = L 0 i" using assms(3) \<open>i \<in> ?K 1\<close> unfolding is_line_def 
         by (smt (verit) \<open>y 0 \<in> {..<t}\<close> assms(2) fun_upd_same lessThan_iff less_trans mem_Collect_eq zero_less_one)
       ultimately show "?L y i = ?f i" by simp
     qed
@@ -306,41 +420,44 @@ proof -
       by blast
   qed
 
-  from A1 A2 A3 A4 A5 A6 show "isSubspace ?L 1 n t" unfolding isSubspace_def by blast
+  from A1 A2 A3 A4 A5 A6 show "is_subspace ?L 1 n t" unfolding is_subspace_def by blast
 qed
 
+definition hj 
+  where "hj t \<equiv> (\<forall>r. \<exists>N>0. \<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))"
+
+definition lhj
+  where "lhj t \<equiv> (\<forall>r k. \<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>))"
+
 text \<open>The base case of Theorem 4 in the book.\<close>
-lemma thm4_k_1: assumes "t > 1" "(\<forall>r. \<exists>N' > 0. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. isLine L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))" shows "(\<forall>r. \<exists>M' > 0. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. isSubspace S 1 M' (t + 1) \<and> (\<forall>i \<in> {..1}. \<exists>c < r. (\<forall>x \<in> classes 1 t i. \<chi> (S x) = c))))"
-proof(rule allI)
-  fix r
-  obtain N' where N'_def: "N' > 0 \<and> (\<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. isLine L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))" using assms(2) by metis
+(* outside quantifier unnecessary *)
 
-  have "\<forall>\<chi>. \<chi> \<in> (cube N' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. isSubspace S 1 N' (t + 1) \<and> (\<forall>i \<in> {..1}. \<exists>c < r. (\<forall>x \<in> classes 1 t i. \<chi> (S x) = c)))"
+
+lemma thm4_k_1: 
+  fixes   r 
+  assumes "t > 1"
+      and "hj t" 
+  shows   "(\<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S 1 M' t r \<chi>))"
+proof-
+  obtain N where N_def: "N > 0 \<and> (\<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))" using assms(2) unfolding hj_def by metis
+  
+  have "\<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. is_subspace S 1 N' (t + 1) \<and> (\<forall>i \<in> {..1}. \<exists>c < r. (\<forall>x \<in> classes 1 t i. \<chi> (S x) = c)))"
   proof(safe)
-    fix \<chi>
-    assume asm: "\<chi> \<in> cube N' (t + 1) \<rightarrow>\<^sub>E {..<r::nat}"
+    fix N' \<chi>
+    assume asm: "N' \<ge> N" "\<chi> \<in> cube N' (t + 1) \<rightarrow>\<^sub>E {..<r::nat}"
+    then have N'_props: "N' > 0 \<and> (\<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))" using N_def by simp
     let ?chi_t = "(\<lambda>x \<in> cube N' t. \<chi> x)"
-    have "?chi_t \<in> cube N' t \<rightarrow>\<^sub>E {..<r::nat}"
-    proof 
-      fix x
-      assume xdef: "x \<in> cube N' t"
-      then have "x \<in> cube N' (t + 1)" using AUX by auto
-      then show "?chi_t x \<in> {..<r::nat}" using asm xdef by auto
-    next
-      fix x
-      assume xdef: "x \<notin> cube N' t"
-      then show "?chi_t x = undefined" by simp
-    qed
-    then obtain L where L_def: "\<exists>c<r. isLine L N' t \<and> ?chi_t ` (L ` {..<t}) = {c}" using N'_def by presburger
+    have "?chi_t \<in> cube N' t \<rightarrow>\<^sub>E {..<r::nat}" using AUX asm by auto
+    then obtain L where L_def: "\<exists>c<r. is_line L N' t \<and> ?chi_t ` (L ` {..<t}) = {c}" using N'_props by presburger
 
-    have "isSubspace (restrict (\<lambda>y. L (y 0)) (cube 1 t)) 1 N' t" using line_is_1dim_subspace N'_def L_def 
+    have "is_subspace (restrict (\<lambda>y. L (y 0)) (cube 1 t)) 1 N' t" using line_is_1dim_subspace N'_props L_def 
       using assms(1) by auto 
-    then obtain B f where Bf_defs: "disjoint_family_on B {..1} \<and> \<Union>(B ` {..1}) = {..<N'} \<and> ({} \<notin> B ` {..<1}) \<and> f \<in> (B 1) \<rightarrow>\<^sub>E {..<t} \<and> (restrict (\<lambda>y. L (y 0)) (cube 1 t)) \<in> (cube 1 t) \<rightarrow>\<^sub>E (cube N' t) \<and> (\<forall>y \<in> cube 1 t. (\<forall>i \<in> B 1. (restrict (\<lambda>y. L (y 0)) (cube 1 t)) y i = f i) \<and> (\<forall>j<1. \<forall>i \<in> B j. ((restrict (\<lambda>y. L (y 0)) (cube 1 t)) y) i = y j))" unfolding isSubspace_def by auto 
+    then obtain B f where Bf_defs: "disjoint_family_on B {..1} \<and> \<Union>(B ` {..1}) = {..<N'} \<and> ({} \<notin> B ` {..<1}) \<and> f \<in> (B 1) \<rightarrow>\<^sub>E {..<t} \<and> (restrict (\<lambda>y. L (y 0)) (cube 1 t)) \<in> (cube 1 t) \<rightarrow>\<^sub>E (cube N' t) \<and> (\<forall>y \<in> cube 1 t. (\<forall>i \<in> B 1. (restrict (\<lambda>y. L (y 0)) (cube 1 t)) y i = f i) \<and> (\<forall>j<1. \<forall>i \<in> B j. ((restrict (\<lambda>y. L (y 0)) (cube 1 t)) y) i = y j))" unfolding is_subspace_def by auto 
 
     have "{..1::nat} = {0,1}" by auto
     then have B_props: "B 0 \<union> B 1 = {..<N'} \<and> (B 0 \<inter> B 1 = {})" using Bf_defs unfolding disjoint_family_on_def by auto
     let ?L' = "L(t:=(\<lambda>j. if j \<in> B 1 then L (t - 1) j else (if j \<in> B 0 then t else undefined)))" 
-    have line_prop: "isLine ?L' N' (t + 1)"
+    have line_prop: "is_line ?L' N' (t + 1)"
     proof-
       have A1:"?L' \<in> {..<t+1} \<rightarrow>\<^sub>E cube N' (t + 1)" 
       proof
@@ -350,7 +467,7 @@ proof(rule allI)
         proof (cases "x < t")
           case True
           then have "?L' x = L x" by simp
-          then have "?L' x \<in> cube N' t" using L_def True unfolding isLine_def by auto
+          then have "?L' x \<in> cube N' t" using L_def True unfolding is_line_def by auto
           then show "?L' x \<in> cube N' (t + 1)" using AUX by blast
         next
           case False
@@ -393,13 +510,13 @@ proof(rule allI)
         fix x
         assume asm: "x \<notin> {..<t+1}" 
         then have "x \<notin> {..<t} \<and> x \<noteq> t" by simp
-        then show "?L' x = undefined"  by (metis (no_types, lifting) L_def PiE_E fun_upd_apply isLine_def)
+        then show "?L' x = undefined"  by (metis (no_types, lifting) L_def PiE_E fun_upd_apply is_line_def)
       qed
 
 
       have A2: "(\<exists>j<N'. (\<forall>s < (t + 1). ?L' s j = s))"
       proof-
-        have "(\<exists>j<N'. (\<forall>s < t. ?L' s j = s))" using L_def unfolding isLine_def by auto
+        have "(\<exists>j<N'. (\<forall>s < t. ?L' s j = s))" using L_def unfolding is_line_def by auto
         then obtain j where j_def: "j < N' \<and> (\<forall>s < t. ?L' s j = s)" by blast
         (* following not very clean, overreliance on sledgehammer *)
         have "j \<notin> B 1"
@@ -462,14 +579,16 @@ proof(rule allI)
 
 
       qed
-      from A1 A2 A3 show ?thesis unfolding isLine_def by simp
+      from A1 A2 A3 show ?thesis unfolding is_line_def by simp
 
 
     qed
-    then have "isSubspace (restrict (\<lambda>y. ?L' (y 0)) (cube 1 (t + 1))) 1 N' (t + 1)" using line_is_1dim_subspace[of "N'" "t+1"] N'_def assms(1) by force
+    then have F1: "is_subspace (restrict (\<lambda>y. ?L' (y 0)) (cube 1 (t + 1))) 1 N' (t + 1)" using line_is_1dim_subspace[of "N'" "t+1"] N'_props assms(1) by force
 
     define S1 where "S1 \<equiv> (restrict (\<lambda>y. ?L' (y (0::nat))) (cube 1 (t+1)))"
-    have "(\<forall>i \<in> {..1}. \<exists>c < r. (\<forall>x \<in> classes 1 t i. \<chi> (S1 x) = c))"
+(* have F2: "\<exists>c < r. \<forall>x \<in> classes 1 t i. \<chi> (S1 x) = c" if i: "i \<in> {..1}" for i
+proof - *)
+    have F2: "(\<forall>i \<in> {..1}. \<exists>c < r. (\<forall>x \<in> classes 1 t i. \<chi> (S1 x) = c))"
     proof(safe)                    
       fix i
       assume "i \<le> (1::nat)"
@@ -493,16 +612,15 @@ proof(rule allI)
         also have " ... = {x . x \<in> cube 1 (t+1) \<and> (x 0 \<in> {..<t})}" using * by simp
         finally have redef: "classes 1 t 0 = {x . x \<in> cube 1 (t+1) \<and> (x 0 \<in> {..<t})}" by simp
 
+         (* (\<lambda>x. x 0) ` (classes 1 t 0) *)
         have "{x 0 | x . x \<in> classes 1 t 0} \<subseteq> {..<t}" using redef by auto
         moreover have "{..<t} \<subseteq> {x 0 | x . x \<in> classes 1 t 0}" 
         proof
-          fix x
-          assume "x \<in> {..<t}"
-          then have "\<exists>a \<in> cube 1 t. a 0 = x" unfolding cube_def using fun_ex[of "0" "{..<1::nat}" "x" "{..<t}" ] by simp
-          then have "\<exists>a \<in> cube 1 (t + 1). a 0 = x" using AUX by blast
-          then have "\<exists>a \<in> cube 1 (t + 1). a 0 = x \<and> a 0 \<in> {..<t}" using \<open>x \<in> {..<t}\<close> by blast
-          then have "\<exists>a \<in> classes 1 t 0. a 0 = x" using redef by blast
-          then show "x \<in> {x 0 |x. x \<in> classes 1 t 0}" by blast
+         fix x assume x: "x \<in> {..<t}"
+         hence "\<exists>a\<in>cube 1 t. a 0 = x"
+           unfolding cube_def by (intro fun_ex) auto
+         then show "x \<in> {x 0 |x. x \<in> classes 1 t 0}"
+           using x AUX unfolding redef by auto
         qed
         ultimately have **: "{x 0 | x . x \<in> classes 1 t 0} = {..<t}" by blast
 
@@ -536,40 +654,82 @@ proof(rule allI)
           have "\<forall>y \<in> classes 1 t 1. y = x" using x_def by auto
           then have "\<forall>y\<in>classes 1 t 1. \<chi> (S1 y) = \<chi> (S1 x)" by auto
           moreover have "x \<in> cube 1 (t+1)" using x_def  using redef by simp
-          moreover have "S1 x \<in> cube N' (t+1)" using lineprop unfolding S1_def isLine_def try0
-          moreover have "\<chi> (S1 x) < r" using asm unfolding cube_def 
-            by (metis PiE_mem asm calculation(3) lessThan_iff)
+          moreover have "S1 x \<in> cube N' (t+1)" using line_prop unfolding S1_def is_line_def 
+            by (smt (z3) aux2 less_add_same_cancel1 less_numeral_extra(1) line_prop mem_Collect_eq redef restrict_apply x_def) 
+          moreover have "\<chi> (S1 x) < r"  unfolding cube_def 
+          by (metis PiE_mem asm(2) calculation(3) lessThan_iff)
           then show "\<exists>c < r. \<forall>x \<in> classes 1 t 1. \<chi> (S1 x) = c" using calculation by auto
         qed
         then show ?thesis using lc_def \<open>i = 1\<close> by auto
-
-
-
-(*   where "classes n t \<equiv> (\<lambda>i. {x . x \<in> (cube n (t + 1)) \<and> (\<forall>u \<in> {(n-i)..<n}. x u = t) \<and> t \<notin> x ` {..<(n - i)}})" *)
-      
-
-
       qed
 
 
     qed
-
-(*isLine L n t \<Longrightarrow> isSubspace (restrict (\<lambda>y. L (y 0)) (cube 1 t)) 1 n t"*)
-    show "\<exists>S. isSubspace S 1 N' (t + 1) \<and> (\<forall>i\<in>{..N'}. \<exists>c<r. \<chi> ` (classes N' t i) = {c}) " sorry
-
-
+    show "(\<exists>S. is_subspace S 1 N' (t + 1) \<and> (\<forall>i \<in> {..1}. \<exists>c < r. (\<forall>x \<in> classes 1 t i. \<chi> (S x) = c))) " using F1 F2 unfolding S1_def by blast
   qed
-  then show "\<exists>M'>0. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. isSubspace S 1 M' (t + 1) \<and> (\<forall>i \<in> {..M'}. \<exists>c < r. \<chi> ` (classes M' t i) = {c}))" using N'_def by blast
+  then show "\<exists>M>0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S 1 M' t r \<chi>)" using N_def unfolding layered_subspace_def by blast
 qed
 
 
-text \<open>Claiming k-dimension subspaces of (cube n t) are isomorphic to (cube k t)\<close>
-definition isSubspace_alt
-  where "isSubspace_alt S k n t \<equiv> (\<exists>\<phi>. k \<le> n \<and> bij_betw \<phi> S (cube k t))"
+text \<open>Claiming k-dimensional subspaces of (cube n t) are isomorphic to (cube k t)\<close>
+definition is_subspace_alt
+  where "is_subspace_alt S k n t \<equiv> (\<exists>\<phi>. k \<le> n \<and> bij_betw \<phi> S (cube k t))"
+
+
+lemma thm4_step: 
+  fixes   r
+  assumes "t > 1" 
+      and "hj t" 
+      and "(\<And>r. \<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>))" 
+  shows   "(\<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S (k + 1)M' t r \<chi>))"
+proof-
+  obtain  m where "(m > 0 \<and> (\<forall>M' \<ge> m. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>)))" using assms(3) by blast
 
 
 
-lemma hales_jewett: "\<forall>\<chi> r t. \<exists>N'. \<forall>N \<ge> N'. \<chi> \<in> (cube N t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. isLine L N t \<and> \<chi> ` (L ` {..<t}) = {c})"
+
+
+qed
+
+
+
+
+
+
+thm "nat_induct"
+lemma nat_01_induct [case_names 0 1 SSuc induct_type nat]: 
+  fixes n
+  assumes "P (0::nat)" and "P 1" and "(\<And>k. P k \<Longrightarrow> P (Suc k))" shows "P n"
+  using assms by (induction n; auto)
+  
+lemma assumes "hj t" shows "lhj t"
+  unfolding lhj_def
+proof-
+  have "\<forall>r. \<exists>M>0. \<forall>M'\<ge>M. \<forall>\<chi>. \<chi> \<in> cube M' (t + 1) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>)" for k
+  proof (induction k rule: nat_01_induct)
+    case 0
+    then show ?case using dim0_layered_subspace_ex by blast
+  next
+    case 1
+    then show ?case
+    proof (cases "t > 1")
+      case True
+      then show ?thesis using thm4_k_1[of "t"] assms by simp
+    next
+      case False
+      then show ?thesis sorry
+    qed
+  next
+    case (SSuc k)
+    then show ?case sorry
+  qed
+
+(* have F2: "\<exists>c < r. \<forall>x \<in> classes 1 t i. \<chi> (S1 x) = c" if i: "i \<in> {..1}" for i
+proof - *)
+
+qed
+
+lemma hales_jewett: "\<forall>\<chi> r t. \<exists>N'. \<forall>N \<ge> N'. \<chi> \<in> (cube N t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N t \<and> \<chi> ` (L ` {..<t}) = {c})"
   sorry
   
   
