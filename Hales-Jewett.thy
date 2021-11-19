@@ -986,7 +986,7 @@ proof-
    	qed (auto simp: T''_def)
 
 
-   	have "T'' ` cube (k+1) (t+1) = T"
+   	have im_T''_eq_T: "T'' ` cube (k+1) (t+1) = T"
    	proof
    	  show "T'' ` cube (k + 1) (t + 1) \<subseteq> T"
    	  proof
@@ -1014,7 +1014,7 @@ proof-
    	    have "?f1 \<in> cube 1 (t+1)" using isx_prop unfolding cube_def by simp
    	    moreover have "?f2 \<in> cube k (t+1)" using isx_prop by blast
    	    moreover have "x = join (Sm'_line (?f1 0)) (S ?f2) m' m" by (simp add: isx_prop)
-   	    ultimately have "x = T' ?f1 ?f2" unfolding T'_def by simp 
+   	    ultimately have *: "x = T' ?f1 ?f2" unfolding T'_def by simp 
 
    	    define f where "f \<equiv> (\<lambda>j \<in> {1..<k+1}. ?f2 (j - 1))(0:=i)"
    	    have "f \<in> cube (k+1) (t+1)"
@@ -1034,8 +1034,11 @@ proof-
    	        ultimately show ?thesis by simp
    	      qed
    	    qed (auto simp: f_def)
-   	    
-
+   	    have "?f1 = (\<lambda>j \<in> {..<1}. f j)" unfolding f_def using isx_prop by auto
+   	    moreover have "?f2 = (\<lambda>j\<in>{..<k}. f (j+1))" using calculation isx_prop unfolding cube_def f_def by fastforce
+   	    ultimately have "T' ?f1 ?f2 = T'' f" using \<open>f \<in> cube (k+1) (t+1)\<close> unfolding T''_def by simp
+   	    then show "x \<in> T'' ` cube (k + 1) (t + 1)" using * 
+   	    using \<open>f \<in> cube (k + 1) (t + 1)\<close> by blast
    	  qed
    	    
 
