@@ -875,8 +875,6 @@ show "x \<in> cube n t" using a assms(1) y_prop unfolding is_subspace_def cube_d
 
 qed
 
-lemma assumes "Q" assumes Q \<Longrightarrow> R"
-apply (drule mp)
 
 lemma thm4_step: 
   fixes   r k
@@ -923,12 +921,8 @@ proof-
         fix y
         assume yasm: "y \<in> cube m (t + 1)"
         then have "\<chi>m' x y = \<chi> (join x y m' m)" using xasm unfolding \<chi>m'_def by simp
-        then show "\<chi>m' x y \<in> {..<r}" using A xasm yasm by auto      
-      next
-        fix y
-        assume "y \<notin> cube m (t+1)"
-        then show "\<chi>m' x y = undefined" using xasm unfolding \<chi>m'_def by auto
-      qed
+        then show "\<chi>m' x y \<in> {..<r}" using A xasm yasm by auto        
+      qed (unfold \<chi>m'_def; use xasm in simp)
     qed (auto simp: \<chi>m'_def)
     have "card (cube m (t+1) \<rightarrow>\<^sub>E {..<r}) = (card {..<r}) ^ (card (cube m (t+1)))"  apply (subst card_PiE) unfolding cube_def apply (meson finite_PiE finite_lessThan)  
       using prod_constant by blast
@@ -966,7 +960,7 @@ proof-
     then obtain S where S_prop: "layered_subspace S k m t r \<chi>m" using assms(4) m_props by blast
     define T where "T \<equiv> {join (Sm'_line i) s m' m | i s . i \<in> {..<t+1} \<and> s \<in> S ` (cube k (t+1))}"
     define T' where "T' \<equiv> (\<lambda>x \<in> cube 1 (t+1). \<lambda>y \<in> cube k (t+1). join (Sm'_line (x 0)) (S y) m' m)"
-    have "T' \<in> cube 1 (t+1) \<rightarrow>\<^sub>E cube k (t+1) \<rightarrow>\<^sub>E cube (m' + m) (t+1)"
+    have T'_prop: "T' \<in> cube 1 (t+1) \<rightarrow>\<^sub>E cube k (t+1) \<rightarrow>\<^sub>E cube (m' + m) (t+1)"
     proof
    	 fix x assume a: "x \<in> cube 1 (t+1)"
    	 show "T' x \<in> cube k (t + 1) \<rightarrow>\<^sub>E cube (m' + m) (t + 1)"
@@ -976,13 +970,77 @@ proof-
    	   moreover have "Sm'_line (x 0) \<in> cube m' (t+1)" using a Sm'_line_base_prop unfolding cube_def by blast
    	   moreover have "S y \<in> cube m (t+1)" using subspace_elems_embed[of "S" "k" "m" "t+1"] S_prop b  unfolding layered_subspace_def by blast
    	   ultimately show "T' x y \<in> cube (m' + m) (t + 1)" using join_cubes by presburger
-   	 next
-   	  fix y assume b: "y \<notin> cube k (t+1)"
-   	  then have "T' x y = undefined" apply (simp add: T'_def) apply (intro impI) 
-   	 qed (m T'_def a)
+   	   next
+   	 qed (unfold T'_def; use a in simp)
+   	qed (auto simp: T'_def)
+
+   	define T'' where "T'' \<equiv> (\<lambda>x \<in> cube (k + 1) (t+1). T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1)))"
+   	have T''_prop: "T'' \<in> cube (k+1) (t+1) \<rightarrow>\<^sub>E cube (m'+m) (t+1)"
+   	proof
+   	  fix x assume a: "x \<in> cube (k+1) (t+1)"
+   	  then have "T'' x = T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1))" unfolding T''_def by auto
+   	  moreover have "(\<lambda>y \<in> {..<1}. x y) \<in> cube 1 (t+1)" using a unfolding cube_def by auto
+   	  moreover have "(\<lambda>y \<in> {..<k}. x (y + 1)) \<in> cube k (t+1)" using a unfolding cube_def by auto
+   	  moreover have "T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1)) \<in> cube (m' + m) (t+1)" using T'_prop calculation unfolding T'_def by blast
+   	  ultimately show "T'' x \<in> cube (m' + m) (t+1)" by argo
+   	qed (auto simp: T''_def)
 
 
-    qed
+   	have "T'' ` cube (k+1) (t+1) = T"
+   	proof
+   	  show "T'' ` cube (k + 1) (t + 1) \<subseteq> T"
+   	  proof
+   	    fix x assume "x \<in> T'' ` cube (k+1) (t+1)"
+   	    then obtain y where y_prop: "y \<in> cube (k+1) (t+1) \<and> x = T'' y" by blast
+   	    then have "T'' y = T' (\<lambda>i \<in> {..<1}. y i) (\<lambda>i \<in> {..<k}. y (i + 1))" unfolding T''_def by simp
+   	    moreover have "(\<lambda>i \<in> {..<1}. y i) \<in> cube 1 (t+1)" using y_prop unfolding cube_def by auto
+   	    moreover have "(\<lambda>i \<in> {..<k}. y (i + 1)) \<in> cube k (t+1)" using y_prop unfolding cube_def by auto
+   	    moreover have " T' (\<lambda>i \<in> {..<1}. y i) (\<lambda>i \<in> {..<k}. y (i + 1)) = join (Sm'_line ((\<lambda>i \<in> {..<1}. y i) 0)) (S (\<lambda>i \<in> {..<k}. y (i + 1))) m' m" using calculation unfolding T'_def by auto
+   	    ultimately have *: "T'' y = join (Sm'_line ((\<lambda>i \<in> {..<1}. y i) 0)) (S (\<lambda>i \<in> {..<k}. y (i + 1))) m' m" by simp
+
+   	    have "(\<lambda>i \<in> {..<1}. y i) 0 \<in> {..<t+1}" using y_prop unfolding cube_def by auto
+   	    moreover have "S (\<lambda>i \<in> {..<k}. y (i + 1)) \<in> S ` (cube k (t+1))" 
+   	    using \<open>(\<lambda>i\<in>{..<k}. y (i + 1)) \<in> cube k (t + 1)\<close> by blast
+   	    ultimately have "T'' y \<in> T" using * unfolding T_def by blast
+   	    then show "x \<in> T" using y_prop by simp
+   	  qed
+   	    
+   	  show "T \<subseteq> T'' ` cube (k + 1) (t + 1)" 
+   	  proof
+   	    fix x assume "x \<in> T"
+   	    then obtain i sx sxinv where isx_prop: "x = join (Sm'_line i) sx m' m \<and> i \<in> {..<t+1} \<and> sx \<in> S ` (cube k (t+1)) \<and> sxinv \<in> cube k (t+1) \<and> S sxinv = sx" unfolding T_def by blast
+   	    let ?f1 = "(\<lambda>j \<in> {..<1::nat}. i)"
+   	    let ?f2 = "sxinv"
+   	    have "?f1 \<in> cube 1 (t+1)" using isx_prop unfolding cube_def by simp
+   	    moreover have "?f2 \<in> cube k (t+1)" using isx_prop by blast
+   	    moreover have "x = join (Sm'_line (?f1 0)) (S ?f2) m' m" by (simp add: isx_prop)
+   	    ultimately have "x = T' ?f1 ?f2" unfolding T'_def by simp 
+
+   	    define f where "f \<equiv> (\<lambda>j \<in> {1..<k+1}. ?f2 (j - 1))(0:=i)"
+   	    have "f \<in> cube (k+1) (t+1)"
+   	    proof (unfold cube_def; intro PiE_I)
+   	      fix j assume "j \<in> {..<k+1}"
+   	      then consider "j = 0" | "j \<in> {1..<k+1}" by fastforce
+   	      then show "f j \<in> {..<t+1}"
+   	      proof (cases)
+   	        case 1
+   	        then have "f j = i" unfolding f_def by simp
+   	        then show ?thesis using isx_prop by simp
+   	      next
+   	        case 2
+   	        then have "j - 1 \<in> {..<k}" by auto
+   	        moreover have "f j = ?f2 (j - 1)" using 2 unfolding f_def by simp
+   	        moreover have "?f2 (j - 1) \<in> {..<t+1}" using calculation(1) isx_prop unfolding cube_def by blast
+   	        ultimately show ?thesis by simp
+   	      qed
+   	    qed (auto simp: f_def)
+   	    have "?f1 = (\<lambda>j \<in> {..<1}. f j)" unfolding f_def using isx_prop by auto
+   	    moreover have "?f2 = (\<lambda>j \<in> {..<k}. f (j+1))" unfolding f_def 
+
+   	  qed
+   	    
+
+   	qed
     have "T \<subseteq> cube (m' + m) (t+1)"
     proof
     	fix x assume a: "x\<in>T"
