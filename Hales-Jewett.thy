@@ -991,8 +991,58 @@ define Bfin where "Bfin \<equiv> (\<lambda>i \<in> {..<k+1}. Bvar i)((k+1):=Bsta
 have fax1: "shiftset m' (BS k) \<inter> BL 1 = {}"  using BfL_props BfS_props unfolding shiftset_def by auto
 have fax2: "BL 0 \<inter> (\<Union>i\<in>{..<k}. shiftset m' (BS i)) = {}" using BfL_props BfS_props unfolding shiftset_def by auto
 have fax3: "\<forall>i \<in> {..<k}. BL 0 \<inter> shiftset m' (BS i) = {}" using BfL_props BfS_props unfolding shiftset_def by auto
-have fax4: "\<forall>i \<in> {..<k}. \<forall>j \<in> {..<k}. i \<noteq> j \<longrightarrow> shiftset m' (BS i) \<inter> shiftset m' (BS j) = {}" using shiftset_disjoint_family[of BS k] BfS_props unfolding disjoint_family_on_def by simp 
-from fax3 fax4 have "disjoint_family_on Bvar {..<k+1}" using BfS_props using shiftset_disjoint_family[of BS k] unfolding Bvar_def unfolding disjoint_family_on_def sorry
+have fax4: "\<forall>i \<in> {..<k+1}. \<forall>j \<in> {..<k+1}. i \<noteq> j \<longrightarrow> shiftset m' (BS i) \<inter> shiftset m' (BS j) = {}" using shiftset_disjoint_family[of BS k] BfS_props unfolding disjoint_family_on_def by simp 
+have "disjoint_family_on Bvar {..<k+1}"
+proof (unfold disjoint_family_on_def; safe)
+	fix m n x assume a: "m < k + 1" "n < k + 1" "m \<noteq> n" "x \<in> Bvar m" "x \<in> Bvar n"
+	show "x \<in> {}"
+	proof (cases "n")
+  	case 0
+  	then show ?thesis using a unfolding Bvar_def 
+  	by (metis IntI fax3 lessThan_iff less_diff_conv2 less_one not_le)
+  next
+  case (Suc nnat)
+  then have *: "n = Suc nnat" by simp
+  	then show ?thesis 
+  	proof (cases m)
+  	case 0
+  	then show ?thesis using a fax3 unfolding Bvar_def by auto
+  	next
+  	case (Suc mnat)
+  	then show ?thesis using a fax4  * unfolding Bvar_def by fastforce
+  	qed
+  	qed
+  	qed
+
+  	have "\<forall>i \<in> {..<k+1}. Bvar i \<inter> Bstat = {}"
+  	proof
+  	fix i assume a: "i \<in> {..<k+1}"
+  	show "Bvar i \<inter> Bstat = {}"
+  	proof (cases i)
+  	case 0
+  	then have "Bvar i = BL 0" unfolding Bvar_def by simp
+  	moreover have "BL 0 \<inter> BL 1 = {}" using BfL_props unfolding disjoint_family_on_def by simp
+  	moreover have "shiftset m' (BS k) \<inter> BL 0 = {}" using BfL_props BfS_props unfolding shiftset_def by auto
+  	ultimately show ?thesis unfolding Bstat_def by blast
+  	next
+  	case (Suc nat)
+  	then have "Bvar i = shiftset m' (BS nat)" unfolding Bvar_def by simp
+  	moreover have "shiftset m' (BS nat) \<inter> BL 1 = {}" using BfS_props BfL_props a Suc unfolding shiftset_def by auto
+  	moreover have "shiftset m' (BS nat) \<inter> shiftset m' (BS k) = {}" using a Suc fax4 by simp
+  	ultimately show ?thesis unfolding Bstat_def by blast
+  	qed
+
+  	have shiftsetnotempty: "\<forall>n i. BS i \<noteq> {} \<longrightarrow> shiftset n (BS i) \<noteq> {}" unfolding shiftset_def by blast
+  	
+  	have "Bvar ` {..<k+1} = BL ` {..<1} \<union> Bvar ` {1..<k+1}" unfolding Bvar_def by force
+  	also have " ... = BL ` {..<1} \<union> {shiftset m' (BS i) | i . i \<in> {..<k}} " unfolding Bvar_def by fastforce  
+  	moreover have "{} \<notin> BL ` {..<1}" using BfL_props by auto
+  	moreover have "{} \<notin> {shiftset m' (BS i) | i . i \<in> {..<k}}" using BfS_props shiftsetnotempty 
+  	by (smt (verit, best) image_eqI mem_Collect_eq)
+  	ultimately have "{} \<notin> Bvar ` {..<k+1}" by simp
+
+  	
+  	then have "disjoint_family_on Bfin {..k+1}" sorry
 
    	have im_T''_eq_T: "T'' ` cube (k+1) (t+1) = T"
    	proof
