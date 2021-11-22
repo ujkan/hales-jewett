@@ -82,6 +82,11 @@ proof-
   ultimately show ?thesis by blast
 qed
 
+lemma is_line_elim_alt:
+assumes "is_line L n t" and "t > 1"
+shows "\<exists>BL. BL \<subseteq> {..<n} \<and> BL \<noteq> {} \<and> (\<forall>j \<in> {..<n} - BL. (\<forall>x<t. \<forall>y<t. L x j = L y j)) \<and> (\<forall>j \<in> BL. (\<forall>s<t. L s j = s))"
+using is_line_elim[of L n t]
+by (metis Diff_Diff_Int Int_Diff_Un Int_commute Un_Diff Un_empty_right Un_upper1 assms(1) assms(2))
 
 lemma aux2: "is_line L n t \<Longrightarrow> (\<forall>s<t. L s \<in> cube n t)"
   unfolding cube_def is_line_def
@@ -134,6 +139,16 @@ lemma "is_line L n t \<Longrightarrow> L ` {..<t} \<subseteq> cube n t"
   by auto
 
 
+  definition shiftset :: "nat \<Rightarrow> nat set \<Rightarrow> nat set"
+  where
+  	"shiftset n S \<equiv> {n + s | s . s \<in> S}"
+
+
+  	lemma shiftset_disjnt: "disjnt A B \<Longrightarrow> disjnt (shiftset n A) (shiftset n B)" 
+  	unfolding disjnt_def shiftset_def by force
+  	lemma shiftset_disjoint_family: "disjoint_family_on B {..k} \<Longrightarrow> disjoint_family_on (\<lambda>i. shiftset n (B i)) {..k}" using shiftset_disjnt unfolding disjoint_family_on_def 
+  	by (meson disjnt_def)
+  	
 term disjoint_family_on
 term partition_on
 definition is_subspace
@@ -456,10 +471,11 @@ text \<open>The base case of Theorem 4 in the book.\<close>
 
 
 lemma thm4_k_1: 
-  fixes   r 
+  fixes   r t
   assumes "t > 1"
       and "\<And>r'. hj r' t" 
-  shows   "(\<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S 1 M' t r \<chi>))"
+      shows "lhj r t 1"
+ 
 proof-
   obtain N where N_def: "N > 0 \<and> (\<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))" using assms(2) unfolding hj_def by metis
   
@@ -689,7 +705,7 @@ proof - *)
     qed
     show "(\<exists>S. is_subspace S 1 N' (t + 1) \<and> (\<forall>i \<in> {..1}. \<exists>c < r. (\<forall>x \<in> classes 1 t i. \<chi> (S x) = c))) " using F1 F2 unfolding S1_def by blast
   qed
-  then show "\<exists>M>0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S 1 M' t r \<chi>)" using N_def unfolding layered_subspace_def by blast
+  then show ?thesis using N_def unfolding layered_subspace_def lhj_def by blast
 qed
 
 
@@ -697,35 +713,19 @@ text \<open>Claiming k-dimensional subspaces of (cube n t) are isomorphic to (cu
 definition is_subspace_alt
   where "is_subspace_alt S k n t \<equiv> (\<exists>\<phi>. k \<le> n \<and> bij_betw \<phi> S (cube k t))"
 
-
-thm "nat_induct"
+  thm "less_induct"
+  thm "nat_induct"
 lemma nat_01_induct [case_names 0 1 SSuc induct_type nat]: 
   fixes n
-  assumes "P (0::nat)" and "P 1" and "(\<And>k. P k \<Longrightarrow> P (Suc k))" shows "P n"
-  using assms by (induction n; auto)
+  assumes "P (0::nat)" and "P 1" and "(\<And>k. k \<ge> ((Suc 0)) \<Longrightarrow> P k \<Longrightarrow> P (Suc k))" shows "P n"
+  using assms by (induction n; auto; metis less_Suc0 not_le)
   
-lemma assumes "\<And>r'. hj r' t" shows "\<And>r. lhj r t k"
-proof (induction k rule: nat_01_induct)
-    case 0
-    then show ?case using dim0_layered_subspace_ex sorry
-  next
-    case 1
-    then show ?case
-    proof (cases "t > 1")
-      case True
-      then show ?thesis using thm4_k_1[of "t"] assms by simp
-    next
-      case False
-      then show ?thesis sorry
-    qed
-  next
-    case (SSuc k)
-    then show ?case sorry
-  qed
-  then show "lhj t" unfolding lhj_def by simp
+
+
+
 (* have F2: "\<exists>c < r. \<forall>x \<in> classes 1 t i. \<chi> (S1 x) = c" if i: "i \<in> {..1}" for i
 proof - *)
-qed
+
 
 
 lemma dim1_subspace_elims: 
@@ -751,8 +751,8 @@ and "\<forall>s \<in> {..<t}. (SOME p. p \<in> cube 1 t \<and> p 0 = s) 0 = s"
 and "\<forall>s \<in> {..<t}. (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) s = (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) ((SOME p. p \<in> cube 1 t \<and> p 0 = s) 0)"
 and "\<forall>s \<in> {..<t}. (SOME p. p \<in> cube 1 t \<and> p 0 = s) \<in> cube 1 t"
 proof -
-show 1: "\<forall>s \<in> {..<t}. \<exists>p \<in> cube 1 t. p 0 = s" unfolding cube_def by (simp add: fun_ex)
-show 2: "\<forall>s \<in> {..<t}. (SOME p. p \<in> cube 1 t \<and> p 0 = s) 0 = s"
+  show 1: "\<forall>s \<in> {..<t}. \<exists>p \<in> cube 1 t. p 0 = s" unfolding cube_def by (simp add: fun_ex)
+  show 2: "\<forall>s \<in> {..<t}. (SOME p. p \<in> cube 1 t \<and> p 0 = s) 0 = s"
   proof(safe)
     fix s
     assume "s < t"
@@ -873,19 +873,22 @@ show "x \<in> cube n t" using a assms(1) y_prop unfolding is_subspace_def cube_d
 
 qed
 
+lemma assumes "t > 1" and "is_subspace S1 k1 n t" and  "is_subspace S2 k2 n t" and "k1 + k2 \<le> n" 
+shows "is_subspace (\<lambda>x\<in>cube (k1+k2) t. join (\<lambda>y \<in> {..<k1}. x y) (\<lambda>y \<in> {..<k2}. x (y + k1)) k1 k2) (k1+k2) n t"
+sorry
 
 lemma thm4_step: 
   fixes   r k
   assumes "t > 1"
-      and "k \<ge> 2"
+      and "k \<ge> 1"
       and "\<And>r'. hj r' t" 
-      and "(\<And>r k'. k' \<le> k \<Longrightarrow> \<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k' M' t r \<chi>))" 
+      and "(\<And>r k'. k' \<le> k \<Longrightarrow> lhj r t k')" 
       and "r > 0"
-  shows   "(\<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S (k + 1) M' t r \<chi>))"
+  shows   "lhj r t (k+1)"
 proof-
-  obtain m where m_props: "(m > 0 \<and> (\<forall>M' \<ge> m. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>)))" using assms(4) by blast
+  obtain m where m_props: "(m > 0 \<and> (\<forall>M' \<ge> m. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>)))" using assms(4)[of "k" "r"] unfolding lhj_def  by blast
   define s where "s \<equiv> r^((t + 1)^m)"
-  obtain m' where m'_props: "(m' > 0 \<and> (\<forall>M' \<ge> m'. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<s::nat} \<longrightarrow> (\<exists>S. layered_subspace S 1 M' t s \<chi>)))" using assms(2) assms(4)[of "1" "s"] by auto 
+  obtain m' where m'_props: "(m' > 0 \<and> (\<forall>M' \<ge> m'. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<s::nat} \<longrightarrow> (\<exists>S. layered_subspace S 1 M' t s \<chi>)))" using assms(2) assms(4)[of "1" "s"] unfolding lhj_def by auto 
 
   have "(\<exists>S. layered_subspace S (k + 1) (m + m') t r \<chi>)" if \<chi>_prop: "\<chi> \<in> cube (m + m') (t + 1) \<rightarrow>\<^sub>E {..<r}" for \<chi>
   proof -
@@ -976,7 +979,20 @@ proof-
    	  moreover have "T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1)) \<in> cube (m' + m) (t+1)" using T'_prop calculation unfolding T'_def by blast
    	  ultimately show "T'' x \<in> cube (m' + m) (t+1)" by argo
    	qed (auto simp: T''_def)
+(*disjoint_family_on B {..k} \<and> \<Union>(B ` {..k}) = {..<n} \<and> ({} \<notin> B ` {..<k}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> S \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> (\<forall>y \<in> cube k t. (\<forall>i \<in> B k. S y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (S y) i = y j)))*)
+obtain BS fS where BfS_props: "disjoint_family_on BS {..k} \<and> \<Union>(BS ` {..k}) = {..<m} \<and> ({} \<notin> BS ` {..<k}) \<and> fS \<in> (BS k) \<rightarrow>\<^sub>E {..<t+1} \<and> S \<in> (cube k (t+1)) \<rightarrow>\<^sub>E (cube m (t+1)) \<and> (\<forall>y \<in> cube k (t+1). (\<forall>i \<in> BS k. S y i = fS i) \<and> (\<forall>j<k. \<forall>i \<in> BS j. (S y) i = y j))" using S_prop unfolding layered_subspace_def is_subspace_def by presburger
 
+obtain BL fL where BfL_props: "disjoint_family_on BL {..1} \<and> \<Union>(BL ` {..1}) = {..<m'} \<and> ({} \<notin> BL ` {..<1}) \<and> fL \<in> (BL 1) \<rightarrow>\<^sub>E {..<t+1} \<and> Sm' \<in> (cube 1 (t+1)) \<rightarrow>\<^sub>E (cube m' (t+1)) \<and> (\<forall>y \<in> cube 1 (t+1). (\<forall>i \<in> BL 1. Sm' y i = fL i) \<and> (\<forall>j<1. \<forall>i \<in> BL j. (Sm' y) i = y j))" using Sm'_prop unfolding layered_subspace_def is_subspace_def by auto
+
+define Bstat where "Bstat \<equiv> shiftset m' (BS k) \<union> BL 1"
+define Bvar where "Bvar \<equiv> (\<lambda>i::nat. (if i = 0 then BL 0 else shiftset m' (BS (i - 1))))"
+define Bfin where "Bfin \<equiv> (\<lambda>i \<in> {..<k+1}. Bvar i)((k+1):=Bstat)"
+
+have fax1: "shiftset m' (BS k) \<inter> BL 1 = {}"  using BfL_props BfS_props unfolding shiftset_def by auto
+have fax2: "BL 0 \<inter> (\<Union>i\<in>{..<k}. shiftset m' (BS i)) = {}" using BfL_props BfS_props unfolding shiftset_def by auto
+have fax3: "\<forall>i \<in> {..<k}. BL 0 \<inter> shiftset m' (BS i) = {}" using BfL_props BfS_props unfolding shiftset_def by auto
+have fax4: "\<forall>i \<in> {..<k}. \<forall>j \<in> {..<k}. i \<noteq> j \<longrightarrow> shiftset m' (BS i) \<inter> shiftset m' (BS j) = {}" using shiftset_disjoint_family[of BS k] BfS_props unfolding disjoint_family_on_def by simp 
+from fax3 fax4 have "disjoint_family_on Bvar {..<k+1}" using BfS_props using shiftset_disjoint_family[of BS k] unfolding Bvar_def unfolding disjoint_family_on_def sorry
 
    	have im_T''_eq_T: "T'' ` cube (k+1) (t+1) = T"
    	proof
@@ -1044,14 +1060,12 @@ proof-
     	ultimately show "x \<in> cube (m' + m) (t+1)" using join_cubes[of "Sm'_line i" "m'" "t" sx m] isx_props by simp 
    qed
 
+
+   have "is_subspace T'' (k+1) (m'+m) (t+1)"
+   sorry
    define T_class where "T_class \<equiv> (\<lambda>j\<in>{..k}. {join (Sm'_line i) s m' m | i s . i \<in> {..<t} \<and> s \<in> S ` (classes k t j)})"
    have "\<forall>j\<le>k. T_class j = classes (m' + m) t j"
-   proof (intro allI impI, safe)
-   	fix j x assume "j \<le> k" "x \<in> T_class j" 
-
-
-
-   qed
+   sorry
     	
       
 
@@ -1062,13 +1076,52 @@ proof-
 
   qed
   
-  show "\<exists>M>0. \<forall>M'\<ge>M. \<forall>\<chi>. \<chi> \<in> cube M' (t + 1) \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>S. layered_subspace S (k + 1) M' t r \<chi>)" sorry
+  show ?thesis sorry
 
 
 
 qed
 
-
+theorem thm4: fixes k assumes "\<And>r'. hj r' t" shows "\<And>r. lhj r t k"
+proof (induction k rule: less_induct)
+  case (less k)
+  consider "k = 0" | "k = 1" | "k \<ge> 2" by linarith
+  then show ?case
+  proof (cases)
+    case 1
+    then show ?thesis using dim0_layered_subspace_ex unfolding lhj_def by auto
+  next
+    case 2
+    then show ?thesis
+    proof (cases "t > 1")
+      case True
+      then show ?thesis using thm4_k_1[of "t"] assms 2 by blast
+    next
+      case False
+      then show ?thesis sorry
+    qed
+  next
+    case 3
+    then show ?thesis
+    proof (cases "t > 1 \<and> r > 0")
+    	case True
+    	have *: "(\<And>r k'. k' \<le> k - 1 \<Longrightarrow> lhj r t k')"
+    	proof-
+    		fix r' k'
+    		assume "k' \<le> k - 1"
+    		then have "k' < k" using 3 by simp
+    		then show "lhj r' t k'" using less[of k' r'] by blast 
+    		qed
+    		have **: "k - 1 \<ge> 1" using 3 by auto
+      show ?thesis using *[of _ r] ** thm4_step[of t "(k-1)" r]  True assms 
+      by (metis "*" add.commute diff_is_0_eq le_add_diff_inverse less_imp_le not_le not_one_le_zero)
+    next
+      case False
+      then show ?thesis sorry
+    qed
+  qed
+qed
+ 
 
 lemma hales_jewett: "\<forall>\<chi> r t. \<exists>N'. \<forall>N \<ge> N'. \<chi> \<in> (cube N t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N t \<and> \<chi> ` (L ` {..<t}) = {c})"
   sorry

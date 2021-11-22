@@ -446,10 +446,10 @@ proof -
 qed
 
 definition hj 
-  where "hj t \<equiv> (\<forall>r. \<exists>N>0. \<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))"
+  where "hj r t \<equiv> (\<exists>N>0. \<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))"
 
 definition lhj
-  where "lhj t \<equiv> (\<forall>r k. \<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>))"
+  where "lhj r t k \<equiv> (\<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>))"
 
 text \<open>The base case of Theorem 4 in the book.\<close>
 (* outside quantifier unnecessary *)
@@ -458,7 +458,7 @@ text \<open>The base case of Theorem 4 in the book.\<close>
 lemma thm4_k_1: 
   fixes   r 
   assumes "t > 1"
-      and "hj t" 
+      and "\<And>r'. hj r' t" 
   shows   "(\<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S 1 M' t r \<chi>))"
 proof-
   obtain N where N_def: "N > 0 \<and> (\<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> \<chi> ` (L ` {..<t}) = {c}))" using assms(2) unfolding hj_def by metis
@@ -704,12 +704,10 @@ lemma nat_01_induct [case_names 0 1 SSuc induct_type nat]:
   assumes "P (0::nat)" and "P 1" and "(\<And>k. P k \<Longrightarrow> P (Suc k))" shows "P n"
   using assms by (induction n; auto)
   
-lemma assumes "hj t" shows "lhj t"
-proof-
-  have "\<forall>r. \<exists>M>0. \<forall>M'\<ge>M. \<forall>\<chi>. \<chi> \<in> cube M' (t + 1) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>)" for k
-  proof (induction k rule: nat_01_induct)
+lemma assumes "\<And>r'. hj r' t" shows "\<And>r. lhj r t k"
+proof (induction k rule: nat_01_induct)
     case 0
-    then show ?case using dim0_layered_subspace_ex by blast
+    then show ?case using dim0_layered_subspace_ex sorry
   next
     case 1
     then show ?case
@@ -880,7 +878,7 @@ lemma thm4_step:
   fixes   r k
   assumes "t > 1"
       and "k \<ge> 2"
-      and "hj t" 
+      and "\<And>r'. hj r' t" 
       and "(\<And>r k'. k' \<le> k \<Longrightarrow> \<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k' M' t r \<chi>))" 
       and "r > 0"
   shows   "(\<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S (k + 1) M' t r \<chi>))"
@@ -904,6 +902,7 @@ proof-
       then show "\<exists>S. layered_subspace S 1 m' t s \<chi> \<and> is_line (\<lambda>s\<in>{..<t + 1}. S (SOME p. p \<in> cube 1 (t+1) \<and> p 0 = s)) m' (t + 1)" using \<open>layered_subspace Sm' 1 m' t s \<chi>\<close> by auto
     qed
 
+    (* \<chi>m' is \<chi>* in the book *)
     define \<chi>m' where "\<chi>m' \<equiv> (\<lambda>x \<in> cube m' (t+1). (\<lambda>y \<in> cube m (t + 1). \<chi> (join x y m' m)))"
     have A: "\<forall>x \<in> cube m' (t+1). \<forall>y \<in> cube m (t+1). \<chi> (join x y m' m) \<in> {..<r}"
     proof(safe)
@@ -913,17 +912,8 @@ proof-
       then show "\<chi> (join x y m' m) < r" using \<chi>_prop unfolding cube_def 
         by (metis PiE_mem add.commute lessThan_iff)
     qed
-    have \<chi>m'_prop: "\<chi>m' \<in> cube m' (t+1) \<rightarrow>\<^sub>E cube m (t+1) \<rightarrow>\<^sub>E {..<r}"
-    proof
-      fix x assume xasm: "x \<in> cube m' (t+1)"
-      show "\<chi>m' x \<in> cube m (t + 1) \<rightarrow>\<^sub>E {..<r}"
-      proof
-        fix y
-        assume yasm: "y \<in> cube m (t + 1)"
-        then have "\<chi>m' x y = \<chi> (join x y m' m)" using xasm unfolding \<chi>m'_def by simp
-        then show "\<chi>m' x y \<in> {..<r}" using A xasm yasm by auto        
-      qed (unfold \<chi>m'_def; use xasm in simp)
-    qed (auto simp: \<chi>m'_def)
+    have \<chi>m'_prop: "\<chi>m' \<in> cube m' (t+1) \<rightarrow>\<^sub>E cube m (t+1) \<rightarrow>\<^sub>E {..<r}" using A by (auto simp: \<chi>m'_def)
+    
     have "card (cube m (t+1) \<rightarrow>\<^sub>E {..<r}) = (card {..<r}) ^ (card (cube m (t+1)))"  apply (subst card_PiE) unfolding cube_def apply (meson finite_PiE finite_lessThan)  
       using prod_constant by blast
     also have "... = r ^ (card (cube m (t+1)))" by simp
@@ -945,6 +935,7 @@ proof-
     define Sm'_line where "Sm'_line \<equiv> (\<lambda>s\<in>{..<t+1}. Sm' (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s))"
     have Sm'_line_base_prop: "\<forall>s \<in> {..<t+1}. Sm'_line s \<in> cube m' (t+1)" using assms(1) dim1_subspace_is_line[of "t+1" "Sm'" "m'"] Sm'_prop aux2[of Sm'_line m' "t+1"] unfolding layered_subspace_def Sm'_line_def by auto
 
+    (* \<chi>m is \<chi>** in book *)
     define \<chi>m where "\<chi>m \<equiv> (\<lambda>y\<in>cube m (t+1). \<chi> (join (Sm'_line 0) y m' m))"
     have "\<chi>m \<in> (cube m (t + 1)) \<rightarrow>\<^sub>E {..<r::nat}"
     proof
@@ -958,7 +949,8 @@ proof-
     	ultimately show "\<chi>m x \<in> {..<r}" using A a by fastforce
     qed (auto simp: \<chi>m_def)
     then obtain S where S_prop: "layered_subspace S k m t r \<chi>m" using assms(4) m_props by blast
-    define T where "T \<equiv> {join (Sm'_line i) s m' m | i s . i \<in> {..<t+1} \<and> s \<in> S ` (cube k (t+1))}"
+    (* Sm'_line i returns the i-th point of the line *)
+    define T where "T \<equiv> {join (Sm'_line i) s m' m | i s . i \<in> {..<t+1} \<and> s \<in> S ` (cube k (t+1))}" (* x\<^sub>is *)
     define T' where "T' \<equiv> (\<lambda>x \<in> cube 1 (t+1). \<lambda>y \<in> cube k (t+1). join (Sm'_line (x 0)) (S y) m' m)"
     have T'_prop: "T' \<in> cube 1 (t+1) \<rightarrow>\<^sub>E cube k (t+1) \<rightarrow>\<^sub>E cube (m' + m) (t+1)"
     proof
