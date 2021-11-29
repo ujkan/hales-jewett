@@ -909,12 +909,13 @@ Proof sketch/idea:
 
 In detail:
   - let \<chi> be an r-coloring, for which we wish to show that there exists a layered (k+1)-dimensional subspace.
-  - by our assumptions, we can obtain a layered k-dimensional subspace S (w.r.t. r-colorings) and a layered line Sm' (w.r.t. to s-colorings, where s=f(r) is constructed from r to facilitate our main proof; details irrelevant)
+  - (SECTION 1) by our assumptions, we can obtain a layered k-dimensional subspace S (w.r.t. r-colorings) and a layered line Sm' (w.r.t. to s-colorings, where s=f(r) is constructed from r to facilitate our main proof; details irrelevant)
   - let m be the dimension of the cube in which the layered k-dimensional subspace S exists
   - let m' be the dimension of the cube in which the layered line Sm' exists
   - we claim that the layered (k+1)-dimensional subspace we are looking for exists in the (m+m')-dimensional cube
     # concretely, we construct these (m+m')-dimensional elements (i.e. tuples) by setting the first m' coordinates to points on the line, and the last m coordinates to points on the subspace.
-    # this construction yields a subspace (i.e. satisfying the subspace properties). We call this T''.
+    # (SECTION 2) this construction yields a subspace (i.e. satisfying the subspace properties). We call this T''. 
+    # We prove it is a subspace in SECTION 3. In SECTION 4, we show it is layered.
 \<close>
 lemma thm4_step: 
   fixes   r k
