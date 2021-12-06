@@ -35,6 +35,9 @@ lemma "f \<in> A \<rightarrow>\<^sub>E B \<longleftrightarrow> ((\<forall>a. (a 
 definition cube :: "nat \<Rightarrow> nat \<Rightarrow> (nat \<Rightarrow> nat) set"
   where "cube n t \<equiv> {..<n} \<rightarrow>\<^sub>E {..<t}"
 
+
+
+lemma cube_restrict: assumes "j < n" "y \<in> cube n t" shows "(\<lambda>g \<in> {..<j}. y g) \<in> cube j t" using assms unfolding cube_def by force
 text \<open>Attempting to show (card {} ->E A) = 1\<close>
 lemma aux: "\<exists>!f. f \<in> {} \<rightarrow>\<^sub>E A " 
   by simp
@@ -251,6 +254,7 @@ text \<open>Defining the equivalence classes of (cube n (t + 1)). {classes n t 0
 definition classes
   where "classes n t \<equiv> (\<lambda>i. {x . x \<in> (cube n (t + 1)) \<and> (\<forall>u \<in> {(n-i)..<n}. x u = t) \<and> t \<notin> x ` {..<(n - i)}})"
 
+lemma classes_subset_cube: "classes n t i \<subseteq> cube n (t+1)" unfolding classes_def by blast
 
 definition layered_subspace
   where "layered_subspace S k n t r \<chi> \<equiv> (is_subspace S k n (t + 1) \<and> (\<forall>i \<in> {..k}. \<exists>c<r. \<forall>x \<in> classes k t i. \<chi> (S x) = c))"
@@ -1339,7 +1343,10 @@ proof-
 
 
 (** SECTION 4: PROVING T'' IS LAYERED **)
+
+    (* This redefinition of the classes makes proving the layered property easier *)
     define T_class where "T_class \<equiv> (\<lambda>j\<in>{..k}. {join (Sm'_line i) s m' m | i s . i \<in> {..<t} \<and> s \<in> S ` (classes k t j)})(k+1:= {join (Sm'_line t) (SOME s. s \<in> S ` (cube m (t+1))) m' m})"
+    (* Proving the equivalence *) 
     have classprop: "T_class j = T'' ` classes (k + 1) t j" if j_prop: "j \<le> k" for j
     proof
       show "T_class j \<subseteq> T'' ` classes (k + 1) t j"
@@ -1347,19 +1354,93 @@ proof-
         fix x assume "x \<in> T_class j"
         from that have "T_class j = {join (Sm'_line i) s m' m | i s . i \<in> {..<t} \<and> s \<in> S ` (classes k t j)}" unfolding T_class_def by simp
         then obtain i s where is_defs: "x = join (Sm'_line i) s m' m \<and> i < t \<and> s \<in> S ` (classes k t j)" using \<open>x \<in> T_class j\<close> unfolding T_class_def by auto
-        moreover have "classes k t j \<subseteq> cube k (t+1)" unfolding classes_def by simp
+        moreover have *:"classes k t j \<subseteq> cube k (t+1)" unfolding classes_def by simp
         moreover have "\<exists>!y. y \<in> classes k t j \<and> s = S y" using subspace_inj_on_cube[of S k m "t+1"] S_prop inj_onD[of S "cube k (t+1)"] calculation unfolding layered_subspace_def inj_on_def by blast
         ultimately obtain y where y_prop: "y \<in> classes k t j \<and> s = S y \<and> (\<forall>z\<in>classes k t j. s = S z \<longrightarrow> y = z)" by auto
 
+        define p where "p \<equiv> join (\<lambda>g\<in>{..<1}. i) y 1 k"
+        have "(\<lambda>g\<in>{..<1}. i) \<in> cube 1 (t+1)" using is_defs unfolding cube_def by simp
+        then have p_in_cube: "p \<in> cube (k + 1) (t+1)" using join_cubes[of "(\<lambda>g\<in>{..<1}. i)" 1 t y k]  y_prop * unfolding p_def by auto
+        then have **: "p 0 = i \<and> (\<forall>l < k. p (l + 1) = y l)" unfolding p_def join_def by simp 
+
+        have "t \<notin> y ` {..<(k - j)}" using y_prop unfolding classes_def by simp
+        then have "\<forall>u < k - j. y u \<noteq> t" by auto
+        then have "\<forall>u < k - j. p (u + 1) \<noteq> t" using ** by simp
+        moreover have "p 0 \<noteq> t" using is_defs ** by simp
+        moreover have "\<forall>u < k - j + 1. p u \<noteq> t" using calculation
+          by (metis One_nat_def le_add_diff_inverse2 less_Suc0 less_diff_conv2 linorder_not_less)
+        ultimately have "\<forall>u < (k + 1) - j. p u \<noteq> t" using that by auto
+        then have A1: " t \<notin> p ` {..<((k+1) - j)}" by blast
+
+
+        have "p u = t" if "u \<in> {k - j + 1..<k+1}" for u
+        proof -
+          from that have "u - 1 \<in> {k - j..<k}" by auto
+          then have "y (u - 1) = t" using y_prop unfolding classes_def by blast
+          then show "p u = t" using ** 
+            by (metis \<open>u - 1 \<in> {k - j..<k}\<close> add_diff_cancel_left' atLeastLessThan_iff diff_is_0_eq' le_add_diff_inverse2 nat_less_le not_less that)
+        qed
+        then have A2: "\<forall>u\<in>{(k+1) - j..<k+1}. p u = t" using that by auto
         
+        from A1 A2 p_in_cube have "p \<in> classes (k+1) t j" unfolding classes_def by blast
 
-
-
-
+        moreover have "x = T'' p"
+        proof-
+          have loc_useful:"(\<lambda>y \<in> {..<k}. p (y + 1)) = (\<lambda>z \<in> {..<k}. y z)" using ** by auto
+          have "T'' p = T' (\<lambda>y \<in> {..<1}. p y) (\<lambda>y \<in> {..<k}. p (y + 1))" using p_in_cube unfolding T''_def by auto
+          moreover have "(\<lambda>y \<in> {..<1}. p y) \<in> cube 1 (t+1)" using ** is_defs unfolding cube_def by simp
+          moreover have "(\<lambda>y \<in> {..<k}. p (y + 1)) \<in> cube k (t+1)" 
+          proof-
+            have "(\<lambda>z \<in> {..<k}. y z) = y" using y_prop * unfolding cube_def by auto
+            then show "(\<lambda>y \<in> {..<k}. p (y + 1)) \<in> cube k (t+1)" using y_prop loc_useful
+              using "*" in_mono by auto
+          qed
+          ultimately have "T' (\<lambda>y \<in> {..<1}. p y) (\<lambda>y \<in> {..<k}. p (y + 1)) = join (Sm'_line ((\<lambda>y \<in> {..<1}. p y) 0)) (S (\<lambda>y \<in> {..<k}. p (y + 1))) m' m" unfolding T'_def by simp
+          also have "... = join (Sm'_line (p 0)) (S (\<lambda>y \<in> {..<k}. p (y + 1))) m' m" by simp
+          also have "... = join (Sm'_line i) (S (\<lambda>y \<in> {..<k}. p (y + 1))) m' m" by (simp add: **)
+          also have "... = join (Sm'_line i) (S (\<lambda>z \<in> {..<k}. y z)) m' m" using loc_useful by simp
+          also have "... = join (Sm'_line i) (S y) m' m" using y_prop * unfolding cube_def by auto
+          also have "... = x" using is_defs y_prop by simp
+          finally show "x = T'' p" 
+            using \<open>T'' p = T' (restrict p {..<1}) (\<lambda>y\<in>{..<k}. p (y + 1))\<close> by presburger
+        qed
+        ultimately show "x \<in> T'' ` classes (k + 1) t j" by blast
       qed
     next
-      show "T'' ` classes (k + 1) t j \<subseteq> T_class j" sorry
+      show "T'' ` classes (k + 1) t j \<subseteq> T_class j"
+      proof
+        fix x assume "x \<in> T'' ` classes (k+1) t j"
+        then obtain y where y_prop: "y \<in> classes (k+1) t j \<and> T'' y = x" by blast
+        then have y_props: "(\<forall>u \<in> {((k+1)-j)..<k+1}. y u = t) \<and> t \<notin> y ` {..<(k+1) - j }" unfolding classes_def by blast
+
+        define z where "z \<equiv> (\<lambda>v \<in> {..<k}. y (v+1))" 
+        have "z \<in> cube k (t+1)" using  y_prop classes_subset_cube[of "k+1" t j] unfolding z_def cube_def by auto
+        moreover
+        {
+          have "z ` {..<k - j} = y ` ((+) 1 ` {..<k-j}) "  unfolding z_def by fastforce
+          also have "... = y ` {1..<k-j+1}" by (simp add: atLeastLessThanSuc_atLeastAtMost image_Suc_lessThan)
+          also have "... = y ` {1..<(k+1)-j}" using j_prop by auto
+          finally have "z ` {..<k - j} \<subseteq> y ` {..<(k+1)-j}" by auto
+          then have "t \<notin> z ` {..<k - j}" using y_props by blast
+        
+        }
+        moreover have "\<forall>u \<in> {k-j..<k}. z u = t" unfolding z_def using y_props by auto
+        ultimately have z_in_classes: "z \<in> classes k t j" unfolding classes_def by blast
+
+        have "y 0 \<noteq> t" using y_props that 
+          by (metis One_nat_def add.right_neutral add_Suc_right image_eqI le_imp_less_Suc lessThan_iff zero_less_diff)
+        then have tr: "y 0 < t" using y_prop classes_subset_cube[of "k+1" t j] unfolding cube_def by fastforce
+
+        have "(\<lambda>g \<in> {..<1}. y g) \<in> cube 1 (t+1)" using y_prop classes_subset_cube[of "k+1" t j] cube_restrict[of 1 "(k+1)" y "t+1"] 
+          by (metis One_nat_def add_mono_thms_linordered_field(4) assms(2) in_mono less_numeral_extra(1) plus_1_eq_Suc) 
+        then have "T'' y = T' (\<lambda>g \<in> {..<1}. y g) z  " using y_prop classes_subset_cube[of "k+1" t j] unfolding T''_def z_def by auto
+        also have " ... = join (Sm'_line ((\<lambda>g \<in> {..<1}. y g) 0)) (S z) m' m" unfolding T'_def using \<open>(\<lambda>g \<in> {..<1}. y g) \<in> cube 1 (t+1)\<close> \<open>z \<in> cube k (t+1)\<close> by auto
+        also have " ... = join (Sm'_line (y 0)) (S z) m' m" by simp
+        also have " ... \<in> T_class j" using tr z_in_classes that unfolding T_class_def by force
+        finally show "x \<in> T_class j" using y_prop by simp
+      qed
     qed
+    (* The core case i \<le> k. The case i = k+1 is trivial since k+1 has only one point. *)
     have "\<forall>x \<in> T'' ` classes (k+1) t i. \<forall>y \<in> T'' ` classes (k+1) t i.  \<chi> x = \<chi> y \<and> \<chi> x < r" if i_assm: "i \<le> k" for i
     proof (intro ballI)
       fix x y assume a: "x \<in> T'' ` classes (k + 1) t i" "y \<in> T'' ` classes (k + 1) t i"
@@ -1402,30 +1483,19 @@ proof-
       finally have CORE: "\<chi>m' (Sm'_line xi) xs =  \<chi>m' (Sm'_line yi) ys" by simp
 
 
-      then have "\<chi> x = \<chi> y" using AA1 AA2 by simp
-(* i have that \<chi>m'_s (Sm'_line 0) = ... = \<chi>m'_s (Sm'_line t) aka \<chi>m' (Sm'_line 0) = ... = \<chi>m' (Sm'_line (t-1)) *)
-(*  hence \<chi>m' (Sm'_line xi) xs = \<chi>m' (Sm'_line 0) xs = \<chi>m xs = \<chi>m ys = \<chi>m' (Sm'_line 0) ys = \<chi>m' (Sm'_line yi) ys *)
-
-
-
-      
+      then have "\<chi> x = \<chi> y" using AA1 AA2 by simp      
       then show " \<chi> x = \<chi> y \<and> \<chi> x < r" 
         by (metis AA1 BIGKEY PiE_mem \<open>\<chi>m \<in> cube m (t + 1) \<rightarrow>\<^sub>E {..<r}\<close> \<open>\<chi>m xs = \<chi>m ys\<close> \<open>\<chi>m' (Sm'_line 0) xs = \<chi>m xs\<close> \<open>ys \<in> cube m (t + 1)\<close> assms(1) lessThan_iff less_numeral_extra(1) less_trans xdefs)
 
     qed
     then have "\<forall>i\<le>k. \<exists>c<r. \<forall>x \<in> T'' ` classes (k+1) t i. \<chi> x = c" 
       by (meson assms(5))
-    
+
     have " (\<forall>i \<in> {..k+1}. \<exists>c<r. \<forall>x \<in> T'' ` classes (k+1) t i. \<chi> x = c)" sorry
     then have "(\<forall>i \<in> {..k+1}. \<exists>c<r. \<forall>x \<in> classes (k+1) t i. \<chi> (T'' x) = c)" by simp
     then have "layered_subspace T'' (k+1) (m' + m) t r \<chi>"  using subspace_T'' unfolding layered_subspace_def by simp
 
-
-
-
-
-
-  	show ?thesis sorry
+  	then show ?thesis  by (metis add.commute)
 
 
   qed
