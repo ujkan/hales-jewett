@@ -207,6 +207,9 @@ proof-
 qed
   
 
+lemma split_cube: assumes "x \<in> cube (k+1) t" shows "(\<lambda>y \<in> {..<1}. x y) \<in> cube 1 t" and "(\<lambda>y \<in> {..<k}. x (y + 1)) \<in> cube k t"
+  using assms unfolding cube_def by auto
+
 term disjoint_family_on
 term partition_on
 definition is_subspace
@@ -939,7 +942,6 @@ proof
 qed
 
 
-
 text \<open>The induction step of theorem 4. Heart of the proof\<close>
 text \<open>
 Proof sketch/idea:
@@ -1138,7 +1140,7 @@ proof-
    	  ultimately show "x \<in> cube (m' + m) (t+1)" using join_cubes[of "Sm'_line i" "m'" "t" sx m] isx_props by simp 
    	qed
 
-
+   	
 
 
 
@@ -1331,12 +1333,77 @@ proof-
   	    ultimately show "fT x \<in> {..<t+1}" using BfS_props by auto
   	  qed
   	qed(auto simp: BT_def Bstat_def fT_def)
+  	find_theorems "\<forall>_\<in>_._"
 
-  	have F5: "(\<forall>y \<in> cube (k + 1) (t + 1). (\<forall>i \<in> BT (k + 1). T'' y i = fT i) \<and> (\<forall>j<k+1. \<forall>i \<in> BT j. (T'' y) i = y j))"
-  	  sorry
+(*  	define Bstat where "Bstat \<equiv> shiftset m' (BS k) \<union> BL 1"
+   	define Bvar where "Bvar \<equiv> (\<lambda>i::nat. (if i = 0 then BL 0 else shiftset m' (BS (i - 1))))"
+   	define BT where "BT \<equiv> (\<lambda>i \<in> {..<k+1}. Bvar i)((k+1):=Bstat)"
+   	define fT where "fT \<equiv> (\<lambda>x. (if x \<in> BL 1 then fL x else (if x \<in> shiftset m' (BS k) then fS (x - m') else undefined)))"
+    define T'' where "T'' \<equiv> (\<lambda>x \<in> cube (k + 1) (t+1). T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1)))"
+    define T' where "T' \<equiv> (\<lambda>x \<in> cube 1 (t+1). \<lambda>y \<in> cube k (t+1). join (Sm'_line (x 0)) (S y) m' m)"
+        "join f g n m \<equiv> (\<lambda>x. if x \<in> {..<n} then f x else (if x \<in> {n..<n+m} then g (x - n) else undefined))"
+
+"(\<forall>y \<in> cube k (t+1). (\<forall>i \<in> BS k. S y i = fS i) \<and> (\<forall>j<k. \<forall>i \<in> BS j. (S y) i = y j))"
+*)
+  	have F5: "((\<forall>i \<in> BT (k + 1). T'' y i = fT i) \<and> (\<forall>j<k+1. \<forall>i \<in> BT j. (T'' y) i = y j))" if "y \<in> cube (k + 1) (t + 1)" for y
+  	proof(intro conjI allI impI ballI)
+  	  fix i assume "i \<in> BT (k + 1)"
+  	  then have "i \<in> Bstat" unfolding BT_def by simp
+  	  then consider "i \<in> shiftset m' (BS k)" |  "i \<in> BL 1" unfolding Bstat_def by blast
+  	  then show "T'' y i = fT i"
+  	  proof (cases)
+  	    case 1
+  	    then have "\<exists>s<m. i = m' + s" unfolding shiftset_def using BfS_props(2) by auto
+  	    then obtain s where s_prop: "s < m \<and> i = m' + s" by blast
+  	    then have *: " i \<in> {m'..<m'+m}" by simp
+  	    have "i \<notin> BL 1" using 1 fax1 by auto
+  	    then have "fT i = fS (i - m')" using 1 unfolding fT_def by simp
+  	    then have **: "fT i = fS s" using s_prop by simp
+
+  	    have XX: "(\<lambda>z \<in> {..<k}. y (z + 1)) \<in> cube k (t+1)" using split_cube that by simp
+  	    have XY: "s \<in> BS k" using  s_prop  1 unfolding shiftset_def by auto
+
+  	    from that have "T'' y i = (T' (\<lambda>z \<in> {..<1}. y z) (\<lambda>z \<in> {..<k}. y (z + 1))) i" unfolding T''_def by auto
+  	    also have "... = (join (Sm'_line ((\<lambda>z \<in> {..<1}. y z) 0)) (S (\<lambda>z \<in> {..<k}. y (z + 1))) m' m) i" using split_cube that unfolding T'_def by simp
+  	    also have "... = (join (Sm'_line (y 0)) (S (\<lambda>z \<in> {..<k}. y (z + 1))) m' m) i" by simp
+  	    also have "... = (S (\<lambda>z \<in> {..<k}. y (z + 1))) s" using * s_prop unfolding join_def by simp
+  	    also have "... = fS s" using XX XY BfS_props(6) by blast
+  	    finally show ?thesis using ** by simp
+  	  next
+  	    case 2
+  	    have XZ: "y 0 \<in> {..<t+1}" using that unfolding cube_def by auto
+  	    have XY: "i \<in> {..<m'}" using 2 BfL_props(2) by blast
+  	    have XX: "(\<lambda>z \<in> {..<1}. y z)  \<in> cube 1 (t+1)" using that split_cube by simp
+
+        have some_eq_restrict: "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = ((\<lambda>z \<in> {..<1}. y z) 0)) = (\<lambda>z \<in> {..<1}. y z)"
+        proof 
+          show "restrict y {..<1} \<in> cube 1 (t + 1) \<and> restrict y {..<1} 0 = restrict y {..<1} 0" using XX by simp
+        next
+          fix p
+          assume "p \<in> cube 1 (t+1) \<and> p 0 = restrict y {..<1} 0"
+          moreover have "p u = restrict y {..<1} u" if "u \<notin> {..<1}" for u using that calculation XX unfolding cube_def using PiE_arb[of "restrict y {..<1}" "{..<1}" "\<lambda>x. {..<t + 1}" u]  PiE_arb[of p "{..<1}" "\<lambda>x. {..<t + 1}" u] by metis
+          ultimately show "p = restrict y {..<1}" by auto 
+        qed
+
+  	    from that have "T'' y i = (T' (\<lambda>z \<in> {..<1}. y z) (\<lambda>z \<in> {..<k}. y (z + 1))) i" unfolding T''_def by auto
+  	    also have "... = (join (Sm'_line ((\<lambda>z \<in> {..<1}. y z) 0)) (S (\<lambda>z \<in> {..<k}. y (z + 1))) m' m) i" using split_cube that unfolding T'_def by simp
+  	    also have "... = (Sm'_line ((\<lambda>z \<in> {..<1}. y z) 0)) i" using XY unfolding join_def by simp
+  	    also have "... = Sm' (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = ((\<lambda>z \<in> {..<1}. y z) 0)) i" using XZ unfolding Sm'_line_def by auto
+  	    also have "... = Sm' (\<lambda>z \<in> {..<1}. y z) i" using some_eq_restrict by simp
+  	    also have "... = fL i" using BfL_props(6) XX 2 by blast
+  	    also have "... = fT i" using 2 unfolding fT_def by simp
+  	    finally show ?thesis .
+  	  qed
+
+  	next
+  	  fix j i assume "j < k + 1" "i \<in> BT j" show "T'' y i = y j" sorry
 
 
-  	from F1 F2 F3 F4 F5 have subspace_T'': "is_subspace T'' (k+1) (m'+m) (t+1)" unfolding is_subspace_def using T''_prop by blast
+  	qed
+  	
+
+
+  	from F1 F2 F3 F4 F5 have subspace_T'': "is_subspace T'' (k+1) (m'+m) (t+1)" unfolding is_subspace_def using T''_prop by metis
 
 
 (* ------------------------------------------------------------------------------------------------------------------------------ *)
@@ -1388,14 +1455,8 @@ proof-
         proof-
           have loc_useful:"(\<lambda>y \<in> {..<k}. p (y + 1)) = (\<lambda>z \<in> {..<k}. y z)" using ** by auto
           have "T'' p = T' (\<lambda>y \<in> {..<1}. p y) (\<lambda>y \<in> {..<k}. p (y + 1))" using p_in_cube unfolding T''_def by auto
-          moreover have "(\<lambda>y \<in> {..<1}. p y) \<in> cube 1 (t+1)" using ** is_defs unfolding cube_def by simp
-          moreover have "(\<lambda>y \<in> {..<k}. p (y + 1)) \<in> cube k (t+1)" 
-          proof-
-            have "(\<lambda>z \<in> {..<k}. y z) = y" using y_prop * unfolding cube_def by auto
-            then show "(\<lambda>y \<in> {..<k}. p (y + 1)) \<in> cube k (t+1)" using y_prop loc_useful
-              using "*" in_mono by auto
-          qed
-          ultimately have "T' (\<lambda>y \<in> {..<1}. p y) (\<lambda>y \<in> {..<k}. p (y + 1)) = join (Sm'_line ((\<lambda>y \<in> {..<1}. p y) 0)) (S (\<lambda>y \<in> {..<k}. p (y + 1))) m' m" unfolding T'_def by simp
+     
+          have "T' (\<lambda>y \<in> {..<1}. p y) (\<lambda>y \<in> {..<k}. p (y + 1)) = join (Sm'_line ((\<lambda>y \<in> {..<1}. p y) 0)) (S (\<lambda>y \<in> {..<k}. p (y + 1))) m' m" using split_cube p_in_cube unfolding T'_def by simp
           also have "... = join (Sm'_line (p 0)) (S (\<lambda>y \<in> {..<k}. p (y + 1))) m' m" by simp
           also have "... = join (Sm'_line i) (S (\<lambda>y \<in> {..<k}. p (y + 1))) m' m" by (simp add: **)
           also have "... = join (Sm'_line i) (S (\<lambda>z \<in> {..<k}. y z)) m' m" using loc_useful by simp
@@ -1526,16 +1587,8 @@ proof (induction k arbitrary: r rule: less_induct)
     then show ?thesis
     proof (cases "t > 1 \<and> r > 0")
     	case True
-    	have *: "(\<And>r k'. k' \<le> k - 1 \<Longrightarrow> lhj r t k')"
-    	proof-
-    		fix r' k'
-    		assume "k' \<le> k - 1"
-    		then have "k' < k" using 3 by simp
-    		then show "lhj r' t k'"  using less by simp
-    	qed
-    	have **: "k - 1 \<ge> 1" using 3 by simp
-    	then  show ?thesis  using thm4_step[of t "k-1" r] 
-        using "*" True add.right_neutral add_Suc_right add_diff_inverse_nat assms nat_diff_split not_one_le_zero plus_1_eq_Suc by force
+    	then show ?thesis  using thm4_step[of t "k-1" r]
+    	  using assms less.IH 3 One_nat_def Suc_pred by fastforce
     next
       case False
       then show ?thesis sorry
