@@ -1335,16 +1335,6 @@ proof-
   	qed(auto simp: BT_def Bstat_def fT_def)
   	find_theorems "\<forall>_\<in>_._"
 
-(*  	define Bstat where "Bstat \<equiv> shiftset m' (BS k) \<union> BL 1"
-   	define Bvar where "Bvar \<equiv> (\<lambda>i::nat. (if i = 0 then BL 0 else shiftset m' (BS (i - 1))))"
-   	define BT where "BT \<equiv> (\<lambda>i \<in> {..<k+1}. Bvar i)((k+1):=Bstat)"
-   	define fT where "fT \<equiv> (\<lambda>x. (if x \<in> BL 1 then fL x else (if x \<in> shiftset m' (BS k) then fS (x - m') else undefined)))"
-    define T'' where "T'' \<equiv> (\<lambda>x \<in> cube (k + 1) (t+1). T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1)))"
-    define T' where "T' \<equiv> (\<lambda>x \<in> cube 1 (t+1). \<lambda>y \<in> cube k (t+1). join (Sm'_line (x 0)) (S y) m' m)"
-        "join f g n m \<equiv> (\<lambda>x. if x \<in> {..<n} then f x else (if x \<in> {n..<n+m} then g (x - n) else undefined))"
-
-"(\<forall>y \<in> cube k (t+1). (\<forall>i \<in> BS k. S y i = fS i) \<and> (\<forall>j<k. \<forall>i \<in> BS j. (S y) i = y j))"
-*)
   	have F5: "((\<forall>i \<in> BT (k + 1). T'' y i = fT i) \<and> (\<forall>j<k+1. \<forall>i \<in> BT j. (T'' y) i = y j))" if "y \<in> cube (k + 1) (t + 1)" for y
   	proof(intro conjI allI impI ballI)
   	  fix i assume "i \<in> BT (k + 1)"
@@ -1396,9 +1386,72 @@ proof-
   	  qed
 
   	next
-  	  fix j i assume "j < k + 1" "i \<in> BT j" show "T'' y i = y j" sorry
+
+(*  	define Bstat where "Bstat \<equiv> shiftset m' (BS k) \<union> BL 1"
+   	define Bvar where "Bvar \<equiv> (\<lambda>i::nat. (if i = 0 then BL 0 else shiftset m' (BS (i - 1))))"
+   	define BT where "BT \<equiv> (\<lambda>i \<in> {..<k+1}. Bvar i)((k+1):=Bstat)"
+   	define fT where "fT \<equiv> (\<lambda>x. (if x \<in> BL 1 then fL x else (if x \<in> shiftset m' (BS k) then fS (x - m') else undefined)))"
+    define T'' where "T'' \<equiv> (\<lambda>x \<in> cube (k + 1) (t+1). T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1)))"
+    define T' where "T' \<equiv> (\<lambda>x \<in> cube 1 (t+1). \<lambda>y \<in> cube k (t+1). join (Sm'_line (x 0)) (S y) m' m)"
+        "join f g n m \<equiv> (\<lambda>x. if x \<in> {..<n} then f x else (if x \<in> {n..<n+m} then g (x - n) else undefined))"
 
 
+  obtain BS fS where BfS_props: "disjoint_family_on BS {..k}" "\<Union>(BS ` {..k}) = {..<m}" "({} \<notin> BS ` {..<k})" " fS \<in> (BS k) \<rightarrow>\<^sub>E {..<t+1}" "S \<in> (cube k (t+1)) \<rightarrow>\<^sub>E (cube m (t+1)) " "(\<forall>y \<in> cube k (t+1). (\<forall>i \<in> BS k. S y i = fS i) \<and> (\<forall>j<k. \<forall>i \<in> BS j. (S y) i = y j))" using S_prop unfolding layered_subspace_def is_subspace_def by auto
+
+   	obtain BL fL where BfL_props: "disjoint_family_on BL {..1}" "\<Union>(BL ` {..1}) = {..<m'}"  "({} \<notin> BL ` {..<1})" "fL \<in> (BL 1) \<rightarrow>\<^sub>E {..<t+1}" "Sm' \<in> (cube 1 (t+1)) \<rightarrow>\<^sub>E (cube m' (t+1))" "(\<forall>y \<in> cube 1 (t+1). (\<forall>i \<in> BL 1. Sm' y i = fL i) \<and> (\<forall>j<1. \<forall>i \<in> BL j. (Sm' y) i = y j))" using Sm'_prop unfolding layered_subspace_def is_subspace_def by auto
+
+
+"(\<forall>y \<in> cube k (t+1). (\<forall>i \<in> BS k. S y i = fS i) \<and> (\<forall>j<k. \<forall>i \<in> BS j. (S y) i = y j))"
+*)
+  	  fix j i assume "j < k + 1" "i \<in> BT j"
+  	  then have i_prop: "i \<in> Bvar j" unfolding BT_def by auto
+      consider "j = 0" | "j > 0" by auto
+  	  then show "T'' y i = y j"
+  	  proof cases
+  	    case 1
+  	    then have "i \<in> BL 0" using i_prop unfolding Bvar_def by auto
+  	    then have XY: "i \<in> {..<m'}" using 1 BfL_props(2) by blast
+  	    have XX: "(\<lambda>z \<in> {..<1}. y z)  \<in> cube 1 (t+1)" using that split_cube by simp
+          	    have XZ: "y 0 \<in> {..<t+1}" using that unfolding cube_def by auto
+
+        have some_eq_restrict: "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = ((\<lambda>z \<in> {..<1}. y z) 0)) = (\<lambda>z \<in> {..<1}. y z)"
+        proof 
+          show "restrict y {..<1} \<in> cube 1 (t + 1) \<and> restrict y {..<1} 0 = restrict y {..<1} 0" using XX by simp
+        next
+          fix p
+          assume "p \<in> cube 1 (t+1) \<and> p 0 = restrict y {..<1} 0"
+          moreover have "p u = restrict y {..<1} u" if "u \<notin> {..<1}" for u using that calculation XX unfolding cube_def using PiE_arb[of "restrict y {..<1}" "{..<1}" "\<lambda>x. {..<t + 1}" u]  PiE_arb[of p "{..<1}" "\<lambda>x. {..<t + 1}" u] by metis
+          ultimately show "p = restrict y {..<1}" by auto 
+        qed
+
+  	    from that have "T'' y i = (T' (\<lambda>z \<in> {..<1}. y z) (\<lambda>z \<in> {..<k}. y (z + 1))) i" unfolding T''_def by auto
+  	    also have "... = (join (Sm'_line ((\<lambda>z \<in> {..<1}. y z) 0)) (S (\<lambda>z \<in> {..<k}. y (z + 1))) m' m) i" using split_cube that unfolding T'_def by simp
+  	    also have "... = (Sm'_line ((\<lambda>z \<in> {..<1}. y z) 0)) i" using XY unfolding join_def by simp
+  	    also have "... = Sm' (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = ((\<lambda>z \<in> {..<1}. y z) 0)) i" using XZ unfolding Sm'_line_def by auto
+  	    also have "... = Sm' (\<lambda>z \<in> {..<1}. y z) i" using some_eq_restrict by simp
+  	    also have "... =  (\<lambda>z \<in> {..<1}. y z) j" using BfL_props(6) XX 1  \<open>i \<in> BL 0\<close> by blast 
+  	    also have "... = (\<lambda>z \<in> {..<1}. y z) 0" using 1 by blast
+  	    also have "... = y 0" by simp
+  	    also have "... = y j" using 1 by simp
+  	    finally show ?thesis .
+  	  next
+  	    case 2
+  	    then have "i \<in> shiftset m' (BS (j - 1))" using i_prop unfolding Bvar_def by simp
+  	    then have "\<exists>s<m. m' + s = i" using BfS_props(2) \<open>j < k + 1\<close> unfolding shiftset_def by force 
+  	    then obtain s where s_prop: "s < m" "i = s + m'" by auto
+         then have *: " i \<in> {m'..<m'+m}" by simp
+
+  	    have XX: "(\<lambda>z \<in> {..<k}. y (z + 1)) \<in> cube k (t+1)" using split_cube that by simp
+  	    have XY: "s \<in> BS (j - 1)" using s_prop 2 \<open>i \<in> shiftset m' (BS (j - 1))\<close> unfolding shiftset_def by force
+
+  	    from that have "T'' y i = (T' (\<lambda>z \<in> {..<1}. y z) (\<lambda>z \<in> {..<k}. y (z + 1))) i" unfolding T''_def by auto
+  	    also have "... = (join (Sm'_line ((\<lambda>z \<in> {..<1}. y z) 0)) (S (\<lambda>z \<in> {..<k}. y (z + 1))) m' m) i" using split_cube that unfolding T'_def by simp
+  	    also have "... = (join (Sm'_line (y 0)) (S (\<lambda>z \<in> {..<k}. y (z + 1))) m' m) i" by simp
+  	    also have "... = (S (\<lambda>z \<in> {..<k}. y (z + 1))) s" using * s_prop unfolding join_def by simp
+  	    also have "... = (\<lambda>z \<in> {..<k}. y (z + 1)) (j-1)" using XX XY BfS_props(6) 2 \<open>j < k + 1\<close> by auto
+  	    also have "... = y j" using 2 \<open>j < k + 1\<close> by force
+  	    finally show ?thesis .
+  	  qed
   	qed
   	
 
