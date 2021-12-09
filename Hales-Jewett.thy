@@ -889,12 +889,77 @@ proof-
   ultimately show "is_line (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) n t" unfolding L_def is_line_def by auto
 qed
 
+find_theorems "_ (THE _. _)"
+thm the_inv_into_def
+lemma invinto: "bij_betw f A B \<Longrightarrow> (\<forall>x \<in> B. \<exists>!y \<in> A. (the_inv_into A f) x = y)" 
+  unfolding bij_betw_def inj_on_def 
+  by (metis inj_on_def order_refl the_inv_into_into)
+
+lemma invintoprops: assumes "s < t" shows "(the_inv_into (cube 1 t) (\<lambda>f. f 0) s) \<in> cube 1 t" and "(the_inv_into (cube 1 t) (\<lambda>f. f 0) s 0 = s)"
+  using assms 
+   apply (metis bij_betw_def lessThan_iff one_dim_cube_eq_nat_set subsetI the_inv_into_into)
+  unfolding the_inv_into_def using one_dim_cube_eq_nat_set[of t] invinto[of "(\<lambda>f. f 0)" "cube 1 t" "{..<t}"] assms 
+  by (metis f_the_inv_into_f_bij_betw lessThan_iff one_dim_cube_eq_nat_set the_inv_into_def) 
+
+lemma "\<exists>!x. P x \<Longrightarrow> (SOME x. P x) = (THE x. P x)"
+  by (metis someI_ex theI)
+lemma some_inv_into: assumes "s < t" shows "(SOME p. p\<in>cube 1 t \<and> p 0 = s) = (the_inv_into (cube 1 t) (\<lambda>f. f 0) s)"
+  using invintoprops[of s t] invinto[of "(\<lambda>f. f 0)" "cube 1 t" "{..<t}"] one_dim_cube_eq_nat_set[of t] assms someI_ex theI unfolding the_inv_into_def 
+  by (smt (verit, best) bij_betw_iff_bijections cube_props(1) cube_props(2) cube_props(4) one_dim_cube_eq_nat_set)
+
+lemma some_inv_into_2:  assumes "s < t" shows "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s) = (the_inv_into (cube 1 t) (\<lambda>f. f 0) s)"
+proof-
+  have "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s) \<in> cube 1 (t+1)" using cube_props assms by simp
+  moreover have A:"(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s) 0 = s" using cube_props assms by simp
+  ultimately have "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s) ` {..<1} = {s}" by auto
+  then have "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s) ` {..<1} \<subseteq> {..<t}" using assms by simp
+  then have B: "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s) \<in> cube 1 t" using \<open>(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s) \<in> cube 1 (t+1)\<close> unfolding cube_def by blast
+
+  show "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s) = (the_inv_into (cube 1 t) (\<lambda>f. f 0) s)" using A B 
+    by (smt (verit, best) assms bij_betw_iff_bijections invintoprops(1) invintoprops(2) one_dim_cube_eq_nat_set)
+
+qed
 
 lemma dim1_layered_subspace_as_line:
   assumes "t > 1"
     and "layered_subspace S 1 n t r \<chi>"
   shows "\<exists>c1 c2. c1<r \<and> c2<r \<and> (\<forall>s<t. \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s)) = c1) \<and> \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = t)) = c2"
-  sorry
+proof -
+  thm layered_subspace_def
+  have "\<forall>x\<in>classes 1 t 0. t \<notin> x ` {..<1}" unfolding classes_def by simp
+  have "\<forall>x \<in> classes 1 t 0. \<forall>u. u < 1 \<longrightarrow> x u < t"
+  proof (intro allI ballI impI)
+    fix x u assume "x \<in> classes 1 t 0" "(u::nat) < 1"
+    then have "x \<in> cube 1 (t+1)" unfolding classes_def by blast
+    then have "x u \<in> {..<t+1}" using \<open>u < 1\<close> unfolding cube_def by blast
+    then have "x u \<in> {..<t}" using \<open>\<forall>x\<in>classes 1 t 0. t \<notin> x ` {..<1}\<close> 
+      using \<open>u < 1\<close> \<open>x \<in> classes 1 t 0\<close> less_Suc_eq by fastforce
+    then show "x u < t" by simp
+  qed
+  then have "classes 1 t 0 \<subseteq> cube 1 t" unfolding cube_def classes_def by auto
+  moreover have "cube 1 t \<subseteq> classes 1 t 0" using AUX[of 1 t] unfolding cube_def classes_def by auto
+  ultimately have X: "classes 1 t 0 = cube 1 t" by blast
+
+  obtain c1 where c1_prop: "c1 < r \<and> (\<forall>x\<in>classes 1 t 0. \<chi> (S x) = c1)" using assms(2) unfolding layered_subspace_def by blast
+  then have "(\<forall>x \<in> cube 1 t. \<chi> (S x) = c1)" using X by blast
+  then have "\<forall>s<t. \<chi> (S (the_inv_into (cube 1 t) (\<lambda>f. f 0) s)) = c1" using one_dim_cube_eq_nat_set[of t] 
+    by (meson bij_betwE bij_betw_the_inv_into lessThan_iff)
+  then have K1: "\<forall>s<t. \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s)) = c1" using some_inv_into_2 by simp
+
+  have *: "\<exists>c<r. \<forall>x \<in> classes 1 t 1. \<chi> (S x) = c" using assms(2) unfolding layered_subspace_def by blast
+
+  have "\<forall>x \<in> classes 1 t 1. x 0 = t" unfolding classes_def by simp
+  moreover have "\<exists>!x \<in> cube 1 (t+1). x 0 = t" using one_dim_cube_eq_nat_set[of "t+1"] unfolding bij_betw_def inj_on_def 
+    using invintoprops(1) invintoprops(2) by force 
+  moreover have **: "\<exists>!x. x  \<in> classes 1 t 1" unfolding classes_def using calculation(2) by simp
+  ultimately have "the_inv_into (cube 1 (t+1)) (\<lambda>f. f 0) t \<in> classes 1 t 1" using invintoprops[of t "t+1"] unfolding classes_def by simp
+
+  then have "\<exists>c2. c2 < r \<and> \<chi> (S (the_inv_into (cube 1 (t+1)) (\<lambda>f. f 0) t)) = c2" using * ** by blast
+  then have K2: "\<exists>c2. c2 < r \<and> \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = t)) = c2" using some_inv_into by simp
+
+  from K1 K2 show ?thesis 
+    using c1_prop by blast
+qed
 
 lemma dim1_layered_subspace_mono_line: assumes "t > 1" and "layered_subspace S 1 n t r \<chi>"
   shows "\<forall>s<t. \<forall>l<t.  \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s)) =  \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = l)) \<and>  \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s)) < r"
