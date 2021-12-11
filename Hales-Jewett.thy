@@ -1000,9 +1000,8 @@ lemma invinto: "bij_betw f A B \<Longrightarrow> (\<forall>x \<in> B. \<exists>!
 lemma invintoprops: assumes "s < t" shows "(the_inv_into (cube 1 t) (\<lambda>f. f 0) s) \<in> cube 1 t" and "(the_inv_into (cube 1 t) (\<lambda>f. f 0) s 0 = s)"
   using assms 
    apply (metis bij_betw_def lessThan_iff one_dim_cube_eq_nat_set subsetI the_inv_into_into)
-  unfolding the_inv_into_def using one_dim_cube_eq_nat_set[of t] invinto[of "(\<lambda>f. f 0)" "cube 1 t" "{..<t}"] assms 
-  sorry
-  (*by (metis f_the_inv_into_f_bij_betw lessThan_iff one_dim_cube_eq_nat_set the_inv_into_def) *)
+  unfolding the_inv_into_def using one_dim_cube_eq_nat_set[of t] invinto[of "(\<lambda>f. f 0)" "cube 1 t" "{..<t}"] assms   
+  by (metis f_the_inv_into_f_bij_betw lessThan_iff one_dim_cube_eq_nat_set the_inv_into_def) 
 
 lemma "\<exists>!x. P x \<Longrightarrow> (SOME x. P x) = (THE x. P x)"
   by (metis someI_ex theI)
@@ -2148,16 +2147,14 @@ then the points y0, ..., y(t-1) are in class k t u and have same color as x_u.
 
 \<close>
 
-
-
-
-
 lemma cor6: assumes "(\<And>r k. lhj r t k)" "t>0"  shows "(hj r (t+1))"
   using assms(1)[of r r] assms(2) unfolding hj_def lhj_def using thm5
   by metis
 
 
-thm hj_def
+lemma "\<not>hj 0 0"
+  by (auto simp: hj_def cube_def)
+
 lemma base: "hj r 0"
 proof (cases "r = 0")
   case True
