@@ -1,39 +1,9 @@
 theory "Hales-Jewett"
-  imports Main "HOL-Library.FuncSet" "HOL-Library.Disjoint_Sets"
+  imports Main "HOL-Library.Disjoint_Sets" "HOL-Library.FuncSet"
 begin
 
-text
-  \<open>
-Goals for next week (8 Nov 2021)
-
-- finish the base case
-+ understand vdw proof
-+ potentially look at other resources -> goal to understand
-+ write comments, clean things up
-
-Goals for next week (15 Nov 2021)
-+ finish the base case
-* start on the induction step / outline
-
-Notes (14 nov 2021)
-  * base case proof not strictly formulated; have proven only for particular N', not \<forall>N\<ge>N'.
-
-Goals for next week (22 Nov 2021)
-* clean up a few things in the base case
-* base case trivialities (t = 0, n = 0)
-* start on the induction step /outline
-
-\<close>
-
-thm ex_bij_betw_nat_finite_1
 lemma ex_bij_betw_nat_finite_2: "card A = n \<Longrightarrow> n > 0 \<Longrightarrow> \<exists>f. bij_betw f A {..<n}"
   by (metis atLeast0LessThan card_ge_0_finite ex_bij_betw_finite_nat)
-
-lemma "f \<in> A \<rightarrow>\<^sub>E B \<longleftrightarrow> ((\<forall>a. (a \<in> A \<longrightarrow> f a \<in> B) \<and> (a \<notin> A \<longrightarrow> f a = undefined)))" 
-  by auto
-
-lemma nemp_emp:"A \<noteq> {} \<Longrightarrow> A \<rightarrow>\<^sub>E {} = {}"
-  by blast
 
 definition cube :: "nat \<Rightarrow> nat \<Rightarrow> (nat \<Rightarrow> nat) set"
   where "cube n t \<equiv> {..<n} \<rightarrow>\<^sub>E {..<t}"
@@ -43,22 +13,15 @@ lemma PiE_uniqueness: "f ` A \<subseteq> B \<Longrightarrow> \<exists>!g \<in> A
 
 lemma cube_restrict: assumes "j < n" "y \<in> cube n t" shows "(\<lambda>g \<in> {..<j}. y g) \<in> cube j t" using assms unfolding cube_def by force
 text \<open>Attempting to show (card {} ->E A) = 1\<close>
-lemma aux: "\<exists>!f. f \<in> {} \<rightarrow>\<^sub>E A " 
-  by simp
 
-lemma "(\<lambda>x. undefined) \<in> {} \<rightarrow>\<^sub>E A"
-  by simp
-lemma AUX: "cube n t \<subseteq> cube n (t + 1)"
+lemma cube_subset: "cube n t \<subseteq> cube n (t + 1)"
   unfolding cube_def
   by (meson PiE_mono le_add1 lessThan_subset_iff)
 
-
-lemma cube0_def: "cube 0 t = {\<lambda>x. undefined}"
+lemma cube0_alt_def: "cube 0 t = {\<lambda>x. undefined}"
   unfolding cube_def by simp
-lemma "card ({} \<rightarrow>\<^sub>E A) = 1"
-  using aux by auto
+  
 
-thm card_PiE
 lemma cube_card: "card ({..<n::nat} \<rightarrow>\<^sub>E {..<t::nat}) = t ^ n"
   apply (subst card_PiE)
   by auto
@@ -118,12 +81,6 @@ proof -
   
 qed
 
-lemma "\<not>is_line L 0 t" 
-  unfolding is_line_def by blast
-
-lemma "n > 0 \<Longrightarrow> \<exists>!L. is_line L n (0::nat)"
-  unfolding is_line_def by auto
-
 lemma is_line_elim_alt:
   assumes "is_line L n t" and "t > 0"
   shows "\<exists>BL. BL \<subseteq> {..<n} \<and> BL \<noteq> {} \<and> (\<forall>j \<in> {..<n} - BL. (\<forall>x<t. \<forall>y<t. L x j = L y j)) \<and> (\<forall>j \<in> BL. (\<forall>s<t. L s j = s))"
@@ -136,49 +93,6 @@ lemma aux2: "is_line L n t \<Longrightarrow> (\<forall>s<t. L s \<in> cube n t)"
 
 lemma aux2_exp: "is_line L n t \<Longrightarrow> (\<forall>s<t. \<forall>j<n. L s j \<in> {..<t})" 
   using aux2 unfolding cube_def by blast
-
-lemma 
-  assumes "is_line L n t" and "t > 0"
-  shows "\<exists>L'. is_line L' n (t + 1) \<and> (\<forall>i\<in>{..<n}.\<forall>s<t. L s i = L' s i)"
-proof-
-  from assms obtain B0 B1 where Bdefs: "B0 \<union> B1 = {..<n} \<and> B0 \<inter> B1 = {} \<and> B0 \<noteq> {} \<and> (\<forall>j \<in> B1. (\<forall>x<t. \<forall>y<t. L x j = L y j)) \<and> (\<forall>j \<in> B0. (\<forall>s<t. L s j = s))" using is_line_elim by presburger
-  define L' where "L' \<equiv> L(t:=(\<lambda>i. if i \<in> B0 then t else (if i \<in> B1 then L 0 i else undefined)))"
-  have "L' \<in> {..<t+1} \<rightarrow>\<^sub>E (cube n (t + 1))"
-  proof
-    fix s assume "s \<in> {..<t+1}"
-    then consider "s < t" | "s = t" by fastforce
-    then show "L' s \<in> cube n (t + 1)"
-    proof (cases)
-      case 1
-      then show ?thesis using assms(1) AUX unfolding L'_def is_line_def by auto
-    next
-      case 2
-      show ?thesis 
-      proof (unfold cube_def; intro PiE_I)
-        fix j assume "j\<in>{..<n}"
-        then have "j \<in> B0 \<union> B1" using Bdefs by simp
-        then have "L' s j = t \<or> L' s j = L 0 j" using 2 unfolding L'_def by auto
-        then show "L' s j \<in> {..<t+1}" using assms(1) aux2_exp[of "L" "n" "t"] 
-          by (metis "2" \<open>j \<in> {..<n}\<close> \<open>s \<in> {..<t + 1}\<close> assms(2) lessThan_iff less_trans)
-      next
-        fix j assume "j \<notin>{..<n}"
-        then have "j \<notin> B0 \<union> B1" using Bdefs by simp
-        then show "L' s j = undefined" unfolding L'_def 
-          by (simp add: "2")
-      qed
-    qed
-  next
-    fix s assume "s \<notin> {..<t+1}"
-    then show "L' s = undefined" using assms(1) unfolding L'_def is_line_def 
-      by (metis (no_types, lifting) PiE_restrict add.commute fun_upd_apply lessThan_iff less_Suc_eq plus_1_eq_Suc restrict_apply)
-  qed
-
-  show ?thesis sorry
-qed
-
-lemma "is_line L n t \<Longrightarrow> L ` {..<t} \<subseteq> cube n t"
-  unfolding cube_def is_line_def
-  by auto
 
 
 definition shiftset :: "nat \<Rightarrow> nat set \<Rightarrow> nat set"
@@ -194,48 +108,10 @@ lemma shiftset_disjoint_family: "disjoint_family_on B {..k} \<Longrightarrow> di
 
 lemma shiftset_altdef: "shiftset n S = (+) n ` S"
   by (auto simp: shiftset_def)
-lemma shiftset_image_2:
-  assumes "(\<Union>i\<in>{..k}. B i) = {..<n}"
-  shows "(\<Union>i\<in>{..k}. shiftset m (B i)) = {m..<m+n}"
-  using assms by (simp add: shiftset_altdef add.commute flip: image_UN atLeast0LessThan)
-
 lemma shiftset_image:
   assumes "(\<Union>i\<in>{..k}. B i) = {..<n}"
   shows "(\<Union>i\<in>{..k}. shiftset m (B i)) = {m..<m+n}"
-proof -
-  have "(\<Union>i\<in>{..k}. shiftset m (B i)) = (\<Union>i\<in>{..k}. (+) m ` (B i))"
-    unfolding shiftset_def by auto
-  also have "\<dots> = (+) m ` (\<Union>i\<in>{..k}. (B i))"
-    by blast
-  also note assms
-  also have "(+) m ` {..<n} = {m..<m+n}"
-    by (simp add: add.commute lessThan_atLeast0)
-  finally show ?thesis .
-qed
-
-(* lemma shiftset_image: assumes "(\<Union>i\<in>{..k}.(B i)) = {..<n}" shows "(\<Union>i\<in>{..k}. (shiftset m (B i))) = {m..<m+n}"
-proof
-  show "(\<Union>i\<le>k. shiftset m (B i)) \<subseteq> {m..<m + n}"
-  proof 
-    fix x assume "x \<in> (\<Union>i\<le>k. shiftset m (B i))"
-    then obtain i where i_prop: "x \<in> shiftset m (B i) \<and> i\<le>k" by auto
-    then obtain s where s_prop: "s \<in> B i \<and> x = m + s" unfolding shiftset_def sorry
-    then have "s \<in> {..<n}" using assms i_prop by auto
-    then show "x \<in> {m..<m+n}" using s_prop by simp
-  qed
-
-  show "{m..<m + n} \<subseteq> (\<Union>i\<le>k. shiftset m (B i))"
-  proof
-    fix x assume "x \<in> {m..<m+n}"
-    then have "x - m \<in> {..<n}" by auto
-    then obtain i where i_prop: "x - m \<in> B i \<and> i \<le> k" using assms by blast
-    then have "x \<in> shiftset m (B i)" unfolding shiftset_def 
-      using \<open>x \<in> {m..<m + n}\<close> by force
-    then show "x \<in>  (\<Union>i\<le>k. shiftset m (B i))" using i_prop by auto
-  qed
-qed
-*)
-
+  using assms by (simp add: shiftset_altdef add.commute flip: image_UN atLeast0LessThan)
 
 lemma union_shift: "(\<Union>i \<in> {a::nat..<a+b}. B (i - a)) = (\<Union>i \<in> {..<b::nat}. B i)"
 proof-
@@ -249,8 +125,6 @@ qed
 lemma split_cube: assumes "x \<in> cube (k+1) t" shows "(\<lambda>y \<in> {..<1}. x y) \<in> cube 1 t" and "(\<lambda>y \<in> {..<k}. x (y + 1)) \<in> cube k t"
   using assms unfolding cube_def by auto
 
-term disjoint_family_on
-term partition_on
 definition is_subspace
   where "is_subspace S k n t \<equiv> (\<exists>B f. 
 disjoint_family_on B {..k} \<and> \<Union>(B ` {..k}) = {..<n} \<and> ({} \<notin> B ` {..<k}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> S \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> (\<forall>y \<in> cube k t. (\<forall>i \<in> B k. S y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (S y) i = y j)))"
@@ -329,17 +203,15 @@ proof-
   moreover have "(\<forall>i \<in> {..0::nat}. \<exists>c<r. \<forall>x \<in> classes (0::nat) t i. \<chi> (S x) = c)"
   proof(safe)
     fix i
-    have "\<forall>x \<in> classes 0 t 0. \<chi> (S x) = \<chi> (S (\<lambda>x. undefined))" using cube0_def 
+    have "\<forall>x \<in> classes 0 t 0. \<chi> (S x) = \<chi> (S (\<lambda>x. undefined))" using cube0_alt_def 
       using \<open>classes 0 t 0 = cube 0 (t + 1)\<close> by auto
-    moreover have "S (\<lambda>x. undefined) \<in> cube n (t+1)" using S_prop cube0_def unfolding is_subspace_def by auto
+    moreover have "S (\<lambda>x. undefined) \<in> cube n (t+1)" using S_prop cube0_alt_def unfolding is_subspace_def by auto
     then have "\<chi> (S (\<lambda>x. undefined)) < r" using assms by auto
     ultimately show "\<exists>c<r. \<forall>x\<in>classes 0 t 0. \<chi> (S x) = c" by auto
   qed
   ultimately have "layered_subspace S 0 n t r \<chi>" using S_prop assms unfolding layered_subspace_def by blast
   then show "\<exists>S. layered_subspace S (0::nat) n t r \<chi>" by auto
 qed
-
-lemma "is_subspace S 1 n t \<Longrightarrow> layered_subspace S 1 n t r \<chi> \<Longrightarrow> (\<exists>c. \<forall>y\<in>cube 1 t. \<chi> (S y) = c)" sorry
 
 text \<open>Proving they are equivalence classes.\<close>
 
@@ -384,21 +256,6 @@ proof (rule ccontr)
   from A B show False by simp
 qed
 
-text \<open>LHJ(r, t, k).\<close>
-
-
-text \<open>Experiments to see how \<rightarrow> behaves.\<close>
-lemma "A \<noteq> {} \<Longrightarrow> A \<rightarrow>\<^sub>E {} = {}"
-  by auto
-
-lemma "A = {} \<Longrightarrow> \<exists>!f. f \<in> A \<rightarrow>\<^sub>E B"
-  by simp
-
-lemma "B \<noteq> {} \<Longrightarrow> A \<rightarrow>\<^sub>E B \<noteq> {}"
-  by (meson PiE_eq_empty_iff)
-
-lemma "bij_betw f A B \<Longrightarrow> (\<forall>a \<in> A. \<exists>!b \<in> B. f a = b)"
-  unfolding bij_betw_def by blast
 
 lemma fun_ex: "a \<in> A \<Longrightarrow> b \<in> B \<Longrightarrow> \<exists>f \<in> A \<rightarrow>\<^sub>E B. f a = b" 
 proof-
@@ -456,30 +313,19 @@ proof (unfold bij_betw_def)
   from A1 A2 show "inj_on (\<lambda>x. \<lambda>y\<in>{..<1::nat}. x) {..<k} \<and> (\<lambda>x. \<lambda>y\<in>{..<1::nat}. x) ` {..<k} = cube 1 k" by blast
 qed
 
-lemma "inj_on f A \<Longrightarrow> b \<in> f ` A \<Longrightarrow> (\<exists>!a. a \<in> A \<and> f a = b)" 
-  using inj_onD by fastforce 
-
 lemma bij_domain_PiE:
   assumes "bij_betw f A1 A2" 
     and "g \<in> A2 \<rightarrow>\<^sub>E B"
   shows "(restrict (g \<circ> f) A1) \<in> A1 \<rightarrow>\<^sub>E B"
   using bij_betwE assms by fastforce
 
-lemma props_over_bij: "bij_betw h X Y \<Longrightarrow> (\<forall>x \<in> X. P a x) \<Longrightarrow> (\<forall>x \<in> X. P a x = Q a (h x)) \<Longrightarrow> (\<forall>y \<in> Y. Q a y)"
-  by (smt (verit, ccfv_SIG) bij_betwE bij_betw_the_inv_into f_the_inv_into_f_bij_betw)
-
-lemma exI2: "P x y \<Longrightarrow> \<exists>x y. P x y"
-  by blast
 text \<open>Relating lines and 1-dimensional subspaces.\<close>
-  (* use assumes and shows *)
-
 lemma line_is_dim1_subspace_t_1: assumes "n > 0" and "is_line L n 1" shows "is_subspace (restrict (\<lambda>y. L (y 0)) (cube 1 1)) 1 n 1"
 proof -
   obtain B\<^sub>0 B\<^sub>1 where B_props: "B\<^sub>0 \<union> B\<^sub>1 = {..<n} \<and> B\<^sub>0 \<inter> B\<^sub>1 = {} \<and> B\<^sub>0 \<noteq> {} \<and> (\<forall>j \<in> B\<^sub>1. (\<forall>x<1. \<forall>y<1. L x j = L y j)) \<and> (\<forall>j \<in> B\<^sub>0. (\<forall>s<1. L s j = s))" using is_line_elim_t_1[of L n 1] assms by auto
 
   define B where "B \<equiv> (\<lambda>i::nat. {}::nat set)(0:=B\<^sub>0, 1:=B\<^sub>1)" 
   define f where "f \<equiv> (\<lambda>i \<in> B 1. L 0 i)"
-  thm is_subspace_def
   have *: "L 0 \<in> {..<n} \<rightarrow>\<^sub>E {..<1}" using assms(2) unfolding cube_def is_line_def by auto
   have "disjoint_family_on B {..1}" unfolding B_def using B_props 
     by (simp add: Int_commute disjoint_family_onI)
@@ -490,39 +336,6 @@ proof -
   moreover have "(\<forall>y\<in>cube 1 1. (\<forall>i\<in>B 1. (restrict (\<lambda>y. L (y 0)) (cube 1 1)) y i = f i) \<and> (\<forall>j<1. \<forall>i\<in>B j. (restrict (\<lambda>y. L (y 0)) (cube 1 1)) y i = y j))" using cube1 B_props * unfolding B_def f_def by auto
   ultimately show ?thesis unfolding is_subspace_def by blast 
 qed
-
-lemma assumes "f \<in> A \<rightarrow>\<^sub>E B" and "g \<in> B \<rightarrow>\<^sub>E C" and "undefined \<notin> B" shows "g \<circ> f \<in> A \<rightarrow>\<^sub>E C"
-proof
-  fix x
-  assume "x \<in> A"
-  have "(g \<circ> f) x = g (f x)" by simp
-  moreover have "f x \<in> B" using assms(1) \<open>x \<in> A\<close> by blast
-  ultimately have "g (f x) \<in> C" using assms(2) by blast
-  then show "(g \<circ> f) x \<in> C" by simp
-next
-  fix x
-  assume "x \<notin> A"
-  then have "(g \<circ> f) x = g (f x)" by simp
-  also have " ... = g (undefined)" using assms \<open>x \<notin> A\<close> by auto
-  also have " ... = undefined" using assms by blast
-  finally show "(g \<circ> f) x = undefined" .
-qed
-
-lemma assumes "is_subspace S k n t" and "is_line L k t"
-  shows "is_line (S \<circ> L) n t"
-proof -
-  (*
-S \<circ> L \<in> {..<t} \<rightarrow>\<^sub>E cube n t \<and> (\<forall>j<n. (\<forall>x<t. \<forall>y<t. (S \<circ> L) x j = (S \<circ> L) y j) \<or> (\<forall>s<t. (S \<circ> L) s j = s)) \<and> (\<exists>j<n. \<forall>s<t. (S \<circ> L) s j = s)
-*)
-  have "L \<in> {..<t} \<rightarrow>\<^sub>E cube k t" using assms(2) unfolding is_line_def by linarith
-  moreover have "S \<in> cube k t \<rightarrow>\<^sub>E cube n t" using assms(1) unfolding is_subspace_def by blast
-  ultimately have "S \<circ> L \<in> {..<t} \<rightarrow>\<^sub>E cube n t" sorry
-
-  show "is_line (S \<circ> L) n t" sorry
-
-qed
-
-
 
 lemma line_is_dim1_subspace_t_ge_1: "n > 0 \<Longrightarrow> t > 1 \<Longrightarrow> is_line L n t \<Longrightarrow> is_subspace (restrict (\<lambda>y. L (y 0)) (cube 1 t)) 1 n t"
 proof -
@@ -664,7 +477,7 @@ proof-
     assume asm: "N' \<ge> N" "\<chi> \<in> cube N' (t + 1) \<rightarrow>\<^sub>E {..<r::nat}"
     then have N'_props: "N' > 0 \<and> (\<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> (\<forall>y \<in> L ` {..<t}. \<chi> y = c)))" using N_def by simp
     let ?chi_t = "(\<lambda>x \<in> cube N' t. \<chi> x)"
-    have "?chi_t \<in> cube N' t \<rightarrow>\<^sub>E {..<r::nat}" using AUX asm by auto
+    have "?chi_t \<in> cube N' t \<rightarrow>\<^sub>E {..<r::nat}" using cube_subset asm by auto
     then obtain L where L_def: "\<exists>c<r. (is_line L N' t \<and> (\<forall>y \<in> L ` {..<t}. ?chi_t y = c))" using N'_props by presburger
 
     have "is_subspace (restrict (\<lambda>y. L (y 0)) (cube 1 t)) 1 N' t" using line_is_dim1_subspace N'_props L_def 
@@ -685,7 +498,7 @@ proof-
           case True
           then have "L' x = L x" by (simp add: L'_def)
           then have "L' x \<in> cube N' t" using L_def True unfolding is_line_def by auto
-          then show "L' x \<in> cube N' (t + 1)" using AUX by blast
+          then show "L' x \<in> cube N' (t + 1)" using cube_subset by blast
         next
           case False
           then have "x = t" using asm by simp
@@ -853,7 +666,7 @@ proof - *)
           hence "\<exists>a\<in>cube 1 t. a 0 = x"
             unfolding cube_def by (intro fun_ex) auto
           then show "x \<in> {x 0 |x. x \<in> classes 1 t 0}"
-            using x AUX unfolding redef by auto
+            using x cube_subset unfolding redef by auto
         qed
         ultimately have **: "{x 0 | x . x \<in> classes 1 t 0} = {..<t}" by blast
 
@@ -908,12 +721,7 @@ text \<open>Claiming k-dimensional subspaces of (cube n t) are isomorphic to (cu
 definition is_subspace_alt
   where "is_subspace_alt S k n t \<equiv> (\<exists>\<phi>. k \<le> n \<and> bij_betw \<phi> S (cube k t))"
 
-thm "less_induct"
-thm "nat_induct"
-lemma nat_01_induct [case_names 0 1 SSuc induct_type nat]: 
-  fixes n
-  assumes "P (0::nat)" and "P 1" and "(\<And>k. k \<ge> ((Suc 0)) \<Longrightarrow> P k \<Longrightarrow> P (Suc k))" shows "P n"
-  using assms by (induction n; auto; metis less_Suc0 not_le)
+
 
 
 
@@ -1018,8 +826,6 @@ proof-
   ultimately show "is_line (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) n t" unfolding L_def is_line_def by auto
 qed
 
-find_theorems "_ (THE _. _)"
-thm the_inv_into_def
 lemma invinto: "bij_betw f A B \<Longrightarrow> (\<forall>x \<in> B. \<exists>!y \<in> A. (the_inv_into A f) x = y)" 
   unfolding bij_betw_def inj_on_def 
   by (metis inj_on_def order_refl the_inv_into_into)
@@ -1034,8 +840,6 @@ lemma invintoprops:
 
 
 
-lemma "\<exists>!x. P x \<Longrightarrow> (SOME x. P x) = (THE x. P x)"
-  by (metis someI_ex theI)
 lemma some_inv_into: assumes "s < t" shows "(SOME p. p\<in>cube 1 t \<and> p 0 = s) = (the_inv_into (cube 1 t) (\<lambda>f. f 0) s)"
   using invintoprops[of s t] invinto[of "(\<lambda>f. f 0)" "cube 1 t" "{..<t}"] one_dim_cube_eq_nat_set[of t] assms someI_ex theI unfolding the_inv_into_def 
   by (smt (verit, best) bij_betw_iff_bijections cube_props(1) cube_props(2) cube_props(4) one_dim_cube_eq_nat_set)
@@ -1058,7 +862,7 @@ lemma dim1_layered_subspace_as_line:
     and "layered_subspace S 1 n t r \<chi>"
   shows "\<exists>c1 c2. c1<r \<and> c2<r \<and> (\<forall>s<t. \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s)) = c1) \<and> \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = t)) = c2"
 proof -
-  thm layered_subspace_def
+  
   have "\<forall>x\<in>classes 1 t 0. t \<notin> x ` {..<1}" unfolding classes_def by simp
   have "\<forall>x \<in> classes 1 t 0. \<forall>u. u < 1 \<longrightarrow> x u < t"
   proof (intro allI ballI impI)
@@ -1070,7 +874,7 @@ proof -
     then show "x u < t" by simp
   qed
   then have "classes 1 t 0 \<subseteq> cube 1 t" unfolding cube_def classes_def by auto
-  moreover have "cube 1 t \<subseteq> classes 1 t 0" using AUX[of 1 t] unfolding cube_def classes_def by auto
+  moreover have "cube 1 t \<subseteq> classes 1 t 0" using cube_subset[of 1 t] unfolding cube_def classes_def by auto
   ultimately have X: "classes 1 t 0 = cube 1 t" by blast
 
   obtain c1 where c1_prop: "c1 < r \<and> (\<forall>x\<in>classes 1 t 0. \<chi> (S x) = c1)" using assms(2) unfolding layered_subspace_def by blast
@@ -1096,62 +900,200 @@ qed
 
 lemma dim1_layered_subspace_mono_line: assumes "t > 0" and "layered_subspace S 1 n t r \<chi>"
   shows "\<forall>s<t. \<forall>l<t.  \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s)) =  \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = l)) \<and>  \<chi> (S (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s)) < r"
-  using dim1_layered_subspace_as_line[of t S n r \<chi>] assms by auto
+  using dim1_layered_subspace_as_line[of t S n r \<chi>] assms by auto  
 
-find_theorems "_ \<subseteq> _ \<Longrightarrow> _ \<subseteq> _ \<Longrightarrow> _ = _"
-lemma "{(\<lambda>x\<in>{..<1::nat}. t)} = classes 1 t 1"
-apply (rule equalityI)
-   apply (simp add: cube_def classes_def)
-  unfolding classes_def cube_def apply simp 
-  by (smt (verit, best) PiE_iff PiE_singleton insertCI lessThan_0 lessThan_Suc mem_Collect_eq restrict_apply' restrict_extensional singletonD subsetI)
-  
-
-definition join
+definition join :: "(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat \<Rightarrow> 'a)"
   where
     "join f g n m \<equiv> (\<lambda>x. if x \<in> {..<n} then f x else (if x \<in> {n..<n+m} then g (x - n) else undefined))"
 
-lemma NOTES1: assumes "j < k" shows "classes (k+1) t j = {join f g 1 k | f g . f \<in> classes 1 t j \<and> g \<in> classes k t j}"
+lemma joinSucleft: "join f g (n + 1) k = join f (join (\<lambda>x. f (x + 1)) g n k) 1 (n + k)"
 proof
-  show "classes (k + 1) t j \<subseteq> {join f g 1 k |f g. f \<in> classes 1 t j \<and> g \<in> classes k t j}"
-  proof
-    fix x
-    assume "x \<in> classes (k + 1) t j"
-    moreover have "(0::nat) \<in> {..<k + 1 - j}" using assms by auto
-    ultimately have "x (0::nat) \<noteq> t" unfolding classes_def by blast
-    then have "x (0::nat) \<in> {..<t+1}" using \<open>x \<in> classes (k + 1) t j\<close> unfolding classes_def cube_def by auto
-    then have "x 0 < t" using \<open>x 0 \<noteq> t\<close> by simp
-    define f where "f \<equiv> restrict x ({..<1::nat})"
-    define g where "g \<equiv> restrict (\<lambda>i. x (i + 1)) {0..<k}"
-
-    have "join f g 1 k = x" unfolding join_def 
-    proof 
-      fix xa
-      consider "xa \<in> {..<1}" | "xa \<in> {1..<1+k}" | "xa \<notin> {..<1} \<and> xa \<notin> {1..<1+k}" by blast
-      then show "(if xa \<in> {..<1} then f xa else if xa \<in> {1..<1 + k} then g (xa - 1) else undefined) = x xa"
-      proof cases
-        case 1
-        then have "(if xa \<in> {..<1} then f xa else if xa \<in> {1..<1 + k} then g (xa - 1) else undefined) = f xa" by auto
-        also have " ... = x xa" using 1 unfolding f_def by force
+  fix x
+  consider "x = 0" | "x > 0 \<and> x \<le> n + k" | "x > n + k" by linarith
+  then show "join f g (n + 1) k x = join f (join (\<lambda>x. f (x + 1)) g n k) 1 (n + k) x"
+  proof cases
+    case 1
+    then have "join f g (n + 1) k x = f 0" unfolding join_def by simp
+    also have "... = restrict f {0} 0" by auto
+    also have "... = join f (join (\<lambda>x. f (x + 1)) g n k) 1 (n + k) x" unfolding join_def by (simp add: 1)
+    finally show ?thesis .
+  next
+    case 2
+    then have a: "x \<in> {1..<n+k+1}" by simp
+    then have H: "join f (join (\<lambda>x. f (x + 1)) g n k) 1 (n + k) x = join (\<lambda>x. f (x + 1)) g n k (x - 1)" unfolding join_def by simp
+    moreover {
+      have "x - 1 \<in> {..<n} \<or> x - 1 \<in> {n..<n+k}" using a by auto
+      then have "join (\<lambda>x. f (x + 1)) g n k (x - 1) = join f g (n + 1) k x"
+      proof (elim disjE)
+        assume asm: "x - 1 \<in> {..<n}"
+        then have "join (\<lambda>x. f (x + 1)) g n k (x - 1) = (\<lambda>x. f (x + 1)) (x - 1)" unfolding join_def by simp
+        also have "... = f x" using a by simp
+        also have "... = join f g (n + 1) k x" unfolding join_def using asm by auto
         finally show ?thesis .
       next
-        case 2
-        then have "(if xa \<in> {..<1} then f xa else if xa \<in> {1..<1 + k} then g (xa - 1) else undefined) = g (xa - 1)" by auto
-        also have "... = x ((xa - 1) + 1)" using 2 unfolding g_def by force
-        also have "... = x xa" using 2 by force
+        assume asm: "x - 1 \<in> {n..<n+k}"
+        then have "join (\<lambda>x. f (x + 1)) g n k (x - 1) = g ((x-1) - n)" unfolding join_def by simp
+        also have "... = g (x - (n + 1))" by simp
+        also have "... = join f g (n + 1) k x" unfolding join_def using a asm by auto
         finally show ?thesis .
-      next
-        case 3
-        have "classes (k+1) t j \<subseteq> cube (k+1) (t+1)" unfolding classes_def by blast
-        then have "x xa = undefined" using 3 \<open>x \<in> classes (k+1) t j\<close> unfolding cube_def by auto
-        then show ?thesis using 3 by presburger
       qed
-    qed
-    moreover have "f \<in> classes 1 t j" sorry
-    moreover have "g \<in> classes k t j" sorry
-    ultimately show "x \<in> {join f g 1 k |f g. f \<in> classes 1 t j \<and> g \<in> classes k t j}" by auto
+    }
+    ultimately show ?thesis by simp
+  next
+    case 3
+    then show ?thesis unfolding join_def by auto
   qed
+qed
+
+
+
+lemma joinSucright:"join f g n (k + 1) = join (join f g n k) (\<lambda>x. g (x + k)) (n + k) 1"
+proof
+  fix i
+  consider "i < n" | "i \<ge> n \<and> i < n + k" | "i = n + k" | "i > n + k" by linarith
+  then show "join f g n (k + 1) i = join (join f g n k) (\<lambda>x. g (x + k)) (n + k) 1 i"
+  proof cases
+    case 1
+    then show ?thesis unfolding join_def by auto
+  next
+    case 2
+    then have "join f g n (k + 1) i = g (i - n)" unfolding join_def by simp
+    also have "... = join f g n k i" unfolding join_def using 2 by auto
+    also have "... = join (join f g n k) (\<lambda>x. g (x + k)) (n + k) 1 i" unfolding join_def by (simp add: 2)
+    finally show ?thesis .
+  next
+    case 3
+    then have "join f g n (k + 1) i = g (i - n)" unfolding join_def by simp
+    also have "... = join (join f g n k) (\<lambda>x. g (x + k)) (n + k) 1 i" unfolding join_def using 3 by simp
+    finally show ?thesis .
+  qed (auto simp: join_def)
+qed
+
+lemma NOTES1: "classes (k+1) t j = {join f g 1 k | f g . f \<in> classes 1 t j \<and> g \<in> classes k t j}"
+  sorry
+
+
+lemma classes0_notempty: "classes 0 t j \<noteq> {}"
+  unfolding classes_def using cube0_alt_def by simp
+
+lemma auxlem: "\<lbrakk>B \<noteq> {}; \<forall>a b. (a \<in> A \<and> b \<in> B) \<longrightarrow> f a b = g a; S = {f a b | a b . a \<in> A \<and> b \<in> B}\<rbrakk> \<Longrightarrow> S = {g a | a . a \<in> A}"
+  by fastforce
+
+lemma join_assoc: "join f (join g h m k) n (m + k) = join (join f g n m) h (n + m) k"
+proof
+  fix i
+  consider "i < n" | "i \<ge> n \<and> i < n + m" | "i \<ge> n + m \<and> i < n + m + k" | "i \<ge> n + m + k" by linarith
+  then show "join f (join g h m k) n (m + k) i = join (join f g n m) h (n + m) k i"
+  proof cases
+    case 1
+    then show ?thesis unfolding join_def by simp
+  next
+    case 2
+    then show ?thesis unfolding join_def by force
+  next
+    case 3
+    then show ?thesis unfolding join_def by auto
+  next
+    case 4
+    then show ?thesis unfolding join_def by auto
+  qed
+qed
+
+lemma join_assoc2: assumes "m \<ge> n" and "n > 0" shows "join (join f g n m) h (n + m) k = join (join f g n (m - n)) (join (\<lambda>j. g (j + m - n)) h n k) m (n + k)"
+proof
+  fix i
+  consider "i < m" | "i \<ge> m \<and> i < n + m \<and> i < n + k" | "i \<ge> m \<and> i \<ge> n + m \<and> i < n + k" | "i \<ge> m \<and> i \<ge> n + k \<and> i < n + m" | "i \<ge> m \<and> i \<ge> n + m \<and> i \<ge> n + k \<and> i < n + m + k" | "i \<ge> n + m + k" by linarith
+  then show "join (join f g n m) h (n + m) k i = join (join f g n (m - n)) (join (\<lambda>j. g (j + m - n)) h n k) m (n + k) i"
+  proof cases
+    case 1
+    then show ?thesis unfolding join_def by auto
+  next
+    case 2
+    then have "join (join f g n m) h (n + m) k i = (join f g n m) i" unfolding join_def by auto
+    also have "... = g (i - n)" unfolding join_def using 2 assms by simp
+    also have "... = join (join f g n (m - n)) (join (\<lambda>j. g (j + m - n)) h n k) m (n + k) i" unfolding join_def using 2 by fastforce
+    finally show ?thesis .
+  next
+    case 3
+    then have *:"i \<in> {m..<m+n+k}" by simp
+    have "join (join f g n m) h (n + m) k i = h (i - (n + m))" unfolding join_def using 3 by auto
+    also have " ... = (join (\<lambda>j. g (j + m - n)) h n k) (i - m)" unfolding join_def using 3 * 
+      by (metis add.commute add_le_imp_le_diff add_lessD1 atLeastLessThan_iff diff_diff_left le_add_diff_inverse2 lessThan_iff not_le)
+    also have " ... = join (join f g n (m - n)) (join (\<lambda>j. g (j + m - n)) h n k) m (n + k) i" unfolding join_def using 3 * by simp
+    finally show ?thesis .
+  next
+    case 4
+    then have *: "i - m < n" using assms using assms(2) by linarith
+    then have "join (join f g n m) h (n + m) k i = (join f g n m) i" unfolding join_def by auto
+    also have "... = g (i - n)" unfolding join_def using 4 by simp
+    also have "... = g ((i - m) + m - n)" using 4 by auto
+    also have "... = (join (\<lambda>j. g (j + m - n)) h n k) (i - m)" unfolding join_def using * by simp
+    also have "... = join (join f g n (m - n)) (join (\<lambda>j. g (j + m - n)) h n k) m (n + k) i" unfolding join_def using 4 by simp
+    finally show ?thesis .
+  next
+    case 5
+    then have "join (join f g n m) h (n + m) k i = h (i - (n + m))" unfolding join_def by simp
+    also have "... = (join (\<lambda>j. g (j + m - n)) h n k) (i - m)" unfolding join_def using 5
+      by (metis add.commute atLeastLessThan_iff diff_diff_left lessThan_iff less_diff_conv2 not_le)
+    also have "... = join (join f g n (m - n)) (join (\<lambda>j. g (j + m - n)) h n k) m (n + k) i" unfolding join_def using 5 by auto
+    finally show ?thesis .
+  qed (auto simp: join_def)
+qed
+
+lemma classes_domain: assumes "f \<in> classes n t j" shows "f = restrict f {..<n}"
+  using assms unfolding classes_def cube_def by auto
+lemma assumes "n > 0" shows "classes (n + m) t j = {join f g n m | f g . f \<in> classes n t j \<and> g \<in> classes m t j}" 
+proof (induction m)
+  case 0
+  then have "join f g n 0 = restrict f {..<n}" if "f \<in> classes n t j" "g \<in> classes 0 t j" for f g unfolding join_def by auto
+  then have "\<forall>f g. f \<in> classes n t j \<and> g \<in> classes 0 t j \<longrightarrow> join f g n 0 = restrict f {..<n}" by blast
+  moreover have "classes (n + 0) t j = {restrict f {..<n} | f . f \<in> classes n t j}" using classes_domain by force
+  ultimately have "classes (n + 0) t j = {join f g n 0 | f g . f \<in> classes n t j \<and> g \<in> classes 0 t j}" using classes0_notempty[of t j] auxlem[of "classes 0 t j" "classes n t j"  "\<lambda>f g. join f g n 0" "\<lambda>f. restrict f {..<n}" "classes (n + 0) t j"]  by force
+  then show ?case by simp
 next
-  show "{join f g 1 k |f g. f \<in> classes 1 t j \<and> g \<in> classes k t j} \<subseteq> classes (k + 1) t j" sorry
+  case (Suc m)
+  then have "classes (n + Suc m) t j = classes ((n + m) + 1) t j" by simp
+  also have "... = {join f g 1 (n + m) | f g . f \<in> classes 1 t j \<and> g \<in> classes (n + m) t j}" using NOTES1[of "n +m" t j] by blast 
+  also have "... = {join f (join g h n m) 1 (n + m) | f g h . f \<in> classes 1 t j \<and> g \<in> classes n t j \<and> h \<in> classes m t j}" using Suc by auto
+  also have "... = {join (join f g 1 n) h (n + 1) m | f g h . f \<in> classes 1 t j \<and> g \<in> classes n t j \<and> h \<in> classes m t j}" using join_assoc by (metis (no_types, hide_lams) Suc_eq_plus1 plus_1_eq_Suc)
+  also have "... = {join (join f g 1 (n - 1)) (join (\<lambda>j. g (j + n - 1)) h 1 m) n (1 + m) | f g h . f \<in> classes 1 t j \<and> g \<in> classes n t j \<and> h \<in> classes m t j}" using join_assoc2[of 1 n _ _ _ m] assms by fastforce
+  also have "... = {join a b n (m + 1) | a b . a \<in> classes n t j \<and> b \<in> classes (Suc m) t j}" sorry
+  finally show ?case by simp
+qed
+
+
+
+lemma assumes "t \<noteq> 0" shows "{join f g n m | f g . f \<in> cube n t \<and> g \<in> cube m t} = {join f g n m | f g . f \<in> cube n t \<and> g \<in> cube (m + k) t}"
+proof (intro equalityI subsetI)
+  fix x
+  assume "x \<in> {join f g n m | f g . f \<in> cube n t \<and> g \<in> cube m t}"
+  then obtain f g where fg_defs: "x = join f g n m" "f \<in> cube n t" "g \<in> cube m t" by blast
+  define gg where "gg = (\<lambda>i. (if i \<in> {..<m} then g i else (if i \<in> {m..<m+k} then 0 else undefined)))"
+  have "gg \<in> cube (m + k) t" unfolding cube_def
+  proof
+    fix i assume "i \<in> {..<m+k}"
+    then consider "i \<in> {..<m}" | "i \<in> {m..<m+k}" by force
+    then show "gg i \<in> {..<t}"
+    proof cases
+      case 1
+      then show ?thesis using fg_defs(3) unfolding gg_def cube_def by auto 
+    next
+      case 2
+      then show ?thesis unfolding gg_def using assms by simp
+    qed
+  qed (auto simp: gg_def)
+  moreover have "join f gg n m = join f g n m" unfolding join_def gg_def by fastforce
+  ultimately have "x = join f gg n m \<and> f \<in> cube n t \<and> gg \<in> cube (m+k) t" using fg_defs by simp
+  then show "x \<in> {join f g n m | f g . f \<in> cube n t \<and> g \<in> cube (m + k) t}" by blast
+next
+  fix x
+  assume "x \<in> {join f g n m |f g. f \<in> cube n t \<and> g \<in> cube (m + k) t}"
+  then obtain f g where fg_defs: "x = join f g n m" "f \<in> cube n t" " g\<in> cube (m+k) t" by blast
+  then have "x = join f (restrict g {..<m}) n m" unfolding cube_def join_def by fastforce
+  moreover have "restrict g {..<m} \<in> cube m t" using fg_defs(3) 
+    by (metis PiE_restrict cube_def cube_restrict linorder_neqE_nat not_add_less1)
+  ultimately show "x \<in> {join f g n m |f g. f \<in> cube n t \<and> g \<in> cube m t}" using fg_defs(2) by blast
+
 qed
 
 lemma join_cubes: assumes "f \<in> cube n (t+1)" and "g \<in> cube m (t+1)" shows "join f g n m \<in> cube (n+m) (t+1)"
@@ -1215,7 +1157,7 @@ proof-
   define s where "s \<equiv> r^((t + 1)^m)"
   obtain n' where n'_props: "(n' > 0 \<and> (\<forall>N \<ge> n'. \<forall>\<chi>. \<chi> \<in> (cube N (t + 1)) \<rightarrow>\<^sub>E {..<s::nat} \<longrightarrow> (\<exists>S. layered_subspace S 1 N t s \<chi>)))" using assms(2) assms(4)[of "1" "s"] unfolding lhj_def by auto 
 
-  have cr: "(\<exists>T. layered_subspace T (k + 1) (M') t r \<chi>)" if \<chi>_prop: "\<chi> \<in> cube M' (t + 1) \<rightarrow>\<^sub>E {..<r}" and M'_prop: "M' \<ge> n' + m" for \<chi> M'
+  have "(\<exists>T. layered_subspace T (k + 1) (M') t r \<chi>)" if \<chi>_prop: "\<chi> \<in> cube M' (t + 1) \<rightarrow>\<^sub>E {..<r}" and M'_prop: "M' \<ge> n' + m" for \<chi> M'
   proof -
     define d where "d \<equiv> M' - (n' + m)"
     define n where "n \<equiv> n' + d"
@@ -1308,20 +1250,6 @@ proof-
       next
       qed (unfold T'_def; use a in simp)
    	qed (auto simp: T'_def)
-
-   	define T''' where "T''' \<equiv> (\<lambda>x \<in> cube (k + 1) (t + 1). join (L_line (x 0)) (S (\<lambda>y \<in> {..<k}. x (y + 1))) n m)"
-   	have "T''' \<in> cube (k+1) (t+1) \<rightarrow>\<^sub>E cube (n+m) (t+1)"
-   	proof
-   	  fix x
-   	  assume a: "x \<in> cube (k+1) (t+1)"
-   	  then have "L_line (x 0) \<in> cube n (t+1)" using L_line_base_prop unfolding cube_def 
-   	    by (metis PiE_mem add_gr_0 lessThan_iff less_numeral_extra(1))
-   	  moreover have "(\<lambda>y \<in> {..<k}. x (y + 1)) \<in> cube k (t+1)" 
-   	    using \<open>x \<in> cube (k + 1) (t + 1)\<close> split_cube(2) by blast
-   	  moreover have "S (\<lambda>y \<in> {..<k}. x (y + 1)) \<in> cube m (t+1)" 
-   	    using S_prop calculation(2) layered_subspace_def subspace_elems_embed by fastforce
-   	  ultimately show "T''' x \<in> cube (n+m) (t+1)" using join_cubes a unfolding T'''_def  by auto
-   	qed (auto simp: T'''_def)
 
    	define T where "T \<equiv> (\<lambda>x \<in> cube (k + 1) (t+1). T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1)))"
    	have T_prop: "T \<in> cube (k+1) (t+1) \<rightarrow>\<^sub>E cube (n+m) (t+1)"
@@ -1480,8 +1408,6 @@ proof-
   	have F2: "disjoint_family_on BT {..k+1}"
   	proof
   	  fix m n assume a: "m\<in>{..k+1}" "n\<in>{..k+1}" "m \<noteq> n"
-  	  (* have False if "x \<in> BT m \<inter> BT n" for x *)
-      
   	  have "\<forall>x. x \<in> BT m \<inter> BT n \<longrightarrow> x \<in> {}" 
   	  proof (intro allI impI)
   	    fix x assume b: "x \<in> BT m \<inter> BT n"
@@ -1593,7 +1519,7 @@ proof-
   	    ultimately show "fT x \<in> {..<t+1}" using BfS_props by auto
   	  qed
   	qed(auto simp: BT_def Bstat_def fT_def)
-  	find_theorems "\<forall>_\<in>_._"
+  	
 
   	have F5: "((\<forall>i \<in> BT (k + 1). T y i = fT i) \<and> (\<forall>j<k+1. \<forall>i \<in> BT j. (T y) i = y j))" if "y \<in> cube (k + 1) (t + 1)" for y
   	proof(intro conjI allI impI ballI)
@@ -1644,25 +1570,7 @@ proof-
   	    also have "... = fT i" using 2 unfolding fT_def by simp
   	    finally show ?thesis .
   	  qed
-
   	next
-
-(*  	define Bstat where "Bstat \<equiv> shiftset n' (BS k) \<union> BL 1"
-   	define Bvar where "Bvar \<equiv> (\<lambda>i::nat. (if i = 0 then BL 0 else shiftset n' (BS (i - 1))))"
-   	define BT where "BT \<equiv> (\<lambda>i \<in> {..<k+1}. Bvar i)((k+1):=Bstat)"
-   	define fT where "fT \<equiv> (\<lambda>x. (if x \<in> BL 1 then fL x else (if x \<in> shiftset n' (BS k) then fS (x - n') else undefined)))"
-    define T where "T \<equiv> (\<lambda>x \<in> cube (k + 1) (t+1). T' (\<lambda>y \<in> {..<1}. x y) (\<lambda>y \<in> {..<k}. x (y + 1)))"
-    define T' where "T' \<equiv> (\<lambda>x \<in> cube 1 (t+1). \<lambda>y \<in> cube k (t+1). join (L_line (x 0)) (S y) n' m)"
-        "join f g n m \<equiv> (\<lambda>x. if x \<in> {..<n} then f x else (if x \<in> {n..<n+m} then g (x - n) else undefined))"
-
-
-  obtain BS fS where BfS_props: "disjoint_family_on BS {..k}" "\<Union>(BS ` {..k}) = {..<m}" "({} \<notin> BS ` {..<k})" " fS \<in> (BS k) \<rightarrow>\<^sub>E {..<t+1}" "S \<in> (cube k (t+1)) \<rightarrow>\<^sub>E (cube m (t+1)) " "(\<forall>y \<in> cube k (t+1). (\<forall>i \<in> BS k. S y i = fS i) \<and> (\<forall>j<k. \<forall>i \<in> BS j. (S y) i = y j))" using S_prop unfolding layered_subspace_def is_subspace_def by auto
-
-   	obtain BL fL where BfL_props: "disjoint_family_on BL {..1}" "\<Union>(BL ` {..1}) = {..<n'}"  "({} \<notin> BL ` {..<1})" "fL \<in> (BL 1) \<rightarrow>\<^sub>E {..<t+1}" "L \<in> (cube 1 (t+1)) \<rightarrow>\<^sub>E (cube n' (t+1))" "(\<forall>y \<in> cube 1 (t+1). (\<forall>i \<in> BL 1. L y i = fL i) \<and> (\<forall>j<1. \<forall>i \<in> BL j. (L y) i = y j))" using L_prop unfolding layered_subspace_def is_subspace_def by auto
-
-
-"(\<forall>y \<in> cube k (t+1). (\<forall>i \<in> BS k. S y i = fS i) \<and> (\<forall>j<k. \<forall>i \<in> BS j. (S y) i = y j))"
-*)
   	  fix j i assume "j < k + 1" "i \<in> BT j"
   	  then have i_prop: "i \<in> Bvar j" unfolding BT_def by auto
       consider "j = 0" | "j > 0" by auto
@@ -1887,13 +1795,13 @@ proof-
     then have "layered_subspace T (k+1) (n + m) t r \<chi>"  using subspace_T that(1) \<open>n + m = M'\<close> unfolding layered_subspace_def by blast
   	then show ?thesis using \<open>n + m = M'\<close> by blast 
   qed
-  then show ?thesis unfolding lhj_def
-    by (metis add.commute m_props trans_less_add1)
+  then show ?thesis unfolding lhj_def using m_props exI[of "\<lambda>M. \<forall>M'\<ge>M. \<forall>\<chi>. \<chi> \<in> cube M' (t + 1) \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>S. layered_subspace S (k + 1) M' t r \<chi>)" m]
+    by blast
 qed
 
 
 
-theorem thm4: fixes k assumes "\<And>r'. hj r' t" shows "lhj r t k"
+theorem theorem4: fixes k assumes "\<And>r'. hj r' t" shows "lhj r t k"
 proof (induction k arbitrary: r rule: less_induct)
   case (less k)
   consider "k = 0" | "k = 1" | "k \<ge> 2" by linarith
@@ -1928,14 +1836,17 @@ proof (induction k arbitrary: r rule: less_induct)
         then show ?thesis using assms unfolding hj_def lhj_def cube_def by fastforce
       next
         case 2
-        then obtain N where N_prop: "N > 0 \<and> (\<forall>N'\<ge>N. \<forall>\<chi>. \<chi> \<in> cube N' t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> is_line L N' t \<and> (\<forall>y \<in> L ` {..<t}. \<chi> y = c)))" using assms unfolding hj_def by metis
-        then have "\<forall>N' \<ge> N. cube N' t \<noteq> {}" unfolding cube_def using 2 by auto
-        then have "\<forall>N' \<ge> N. cube N' t \<rightarrow>\<^sub>E {..<r} = {}" using 2 by blast
+        then obtain N where N_prop: "N > 0" "(\<forall>N'\<ge>N. \<forall>\<chi>. \<chi> \<in> cube N' t \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> is_line L N' t \<and> (\<forall>y \<in> L ` {..<t}. \<chi> y = c)))" using assms unfolding hj_def by blast
+        have "cube N' t \<rightarrow>\<^sub>E {..<r} = {}" if "N'\<ge>N" for N'
+        proof-
+          have "cube N' t \<noteq> {}" using N_prop(2) that 2 by auto   
+          then show ?thesis using 2 by blast
+        qed
         then show ?thesis using N_prop unfolding lhj_def 
           by (metis PiE_eq_empty_iff all_not_in_conv cube_def lessThan_iff trans_less_add1) 
       next
         case 3
-        then have "\<forall>N' \<chi>. (\<exists>L c. c < r \<and> is_line L N' t \<and> (\<forall>y \<in> L ` {..<t}. \<chi> y = c)) \<Longrightarrow> False" by blast
+        then have "(\<exists>L c. c < r \<and> is_line L N' t \<and> (\<forall>y \<in> L ` {..<t}. \<chi> y = c)) \<Longrightarrow> False" for N' \<chi> by blast
         then have False using assms 3 unfolding hj_def cube_def by fastforce
         then show ?thesis by blast
       qed
@@ -1949,8 +1860,6 @@ lemma thm5: assumes "layered_subspace S k n t k \<chi>" and "t > 0"  shows "(\<e
 proof-
   define x where "x \<equiv> (\<lambda>i\<in>{..k}. \<lambda>j\<in>{..<k}. (if j < k - i then 0 else t))"
 
-  thm is_subspace_def
-  thm layered_subspace_def
   have A: "x i \<in> cube k (t + 1)" if "i \<le> k" for i using that unfolding cube_def x_def by simp
   then have "S (x i) \<in> cube n (t+1)" if "i \<le> k" for i using that assms(1) unfolding layered_subspace_def is_subspace_def by fast
 
@@ -2005,46 +1914,20 @@ proof-
   then obtain u v where uv_props: "u \<in> {..k} \<and> v \<in> {..k} \<and> u < v \<and> \<chi> (S (x u)) = \<chi> (S (x v))" 
     by (metis nat_neq_iff)
 
-  thm is_subspace_def
-  define y where "y \<equiv> (\<lambda>s \<in> {..t}. S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))))"
+  let ?f = "\<lambda>s. (\<lambda>i \<in> {..<k}. if i < k - v then 0 else (if i < k - u then s else t))"
+  define y where "y \<equiv> (\<lambda>s \<in> {..t}. S (?f s))"
 
-  have line1: "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))) \<in> cube k (t+1)" if "s\<le>t" for s
-  proof (unfold cube_def; intro PiE_I)
-    fix l assume "l\<in>{..<k}"
-    then have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))) l \<le> t" using that by auto
-    then show "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))) l \<in> {..<t+1}" by simp
-  qed (auto simp: cube_def)
+  have line1: "?f s \<in> cube k (t+1)" if "s \<le> t" for s unfolding cube_def using that by auto
 
-  have HEHE:"(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) \<in> cube k (t+1)" if "j < t+1" for j using line1 that by simp
-  have HEHE_BETTER: "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) \<in> classes k t u" if j_prop: "j < t" for j
-(*   where "classes n t \<equiv> (\<lambda>i. {x . x \<in> (cube n (t + 1)) \<and> (\<forall>u \<in> {(n-i)..<n}. x u = t) \<and> t \<notin> x ` {..<(n - i)}})" *)
-  proof -
-    have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) z = t" if "z \<in> {k - u..<k}" for z using that uv_props by auto
-    moreover have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) z \<noteq> t" if "z \<in> {..<k - u}" for z using that j_prop by auto
-    moreover have "t \<notin> (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) ` {..<k-u}" using calculation by force
-    ultimately show ?thesis unfolding classes_def using HEHE j_prop by simp
-  qed
-   have HEHE_BETTER_v: "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) \<in> classes k t v" if j_prop: "j = t" for j
-(*   where "classes n t \<equiv> (\<lambda>i. {x . x \<in> (cube n (t + 1)) \<and> (\<forall>u \<in> {(n-i)..<n}. x u = t) \<and> t \<notin> x ` {..<(n - i)}})" *)
-  proof -
-    have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) z = t" if "z \<in> {k - v..<k}" for z using that uv_props j_prop by auto
-    moreover have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) z \<noteq> t" if "z \<in> {..<k - v}" for z using that j_prop assms(2) by auto
-    moreover have "t \<notin> (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) ` {..<k-v}" using calculation by force
-    ultimately show ?thesis unfolding classes_def using HEHE j_prop by simp
-  qed
+  have f_cube: "?f j \<in> cube k (t+1)" if "j < t+1" for j using line1 that by simp
+  have f_classes_u: "?f j \<in> classes k t u" if j_prop: "j < t" for j
+    using that j_prop uv_props f_cube unfolding classes_def by auto
+  have f_classes_v: "?f j \<in> classes k t v" if j_prop: "j = t" for j
+     using that j_prop uv_props assms(2) f_cube unfolding classes_def by auto
 
   obtain B f where Bf_props: "disjoint_family_on B {..k}" "\<Union>(B ` {..k}) = {..<n}" "({} \<notin> B ` {..<k})" "f \<in> (B k) \<rightarrow>\<^sub>E {..<t+1}" "S \<in> (cube k (t+1)) \<rightarrow>\<^sub>E (cube n (t+1))" "(\<forall>y \<in> cube k (t+1). (\<forall>i \<in> B k. S y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (S y) i = y j))" using assms(1) unfolding layered_subspace_def is_subspace_def by auto
 
-  have "y \<in> {..<t+1} \<rightarrow>\<^sub>E cube n (t+1)"
-  proof
-    fix j assume a: "j \<in> {..<t+1}"
-    then have "y j = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t)))" unfolding y_def by auto
-    moreover have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) \<in> cube k (t+1)" using a line1 by simp
-    moreover have "S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then j else t))) \<in> cube n (t+1)" using calculation(2)  \<open>S ` cube k (t + 1) \<subseteq> cube n (t + 1)\<close> by blast
-    ultimately show "y j \<in> cube n (t+1)" by auto
-  qed (auto simp: cube_def y_def)
-
-
+  have "y \<in> {..<t+1} \<rightarrow>\<^sub>E cube n (t+1)" unfolding y_def using line1 \<open>S ` cube k (t + 1) \<subseteq> cube n (t + 1)\<close> by auto
   moreover have "(\<forall>u<t+1. \<forall>v<t+1. y u j = y v j) \<or> (\<forall>s<t+1. y s j = s)" if j_prop: "j<n" for j 
   proof-
     show "(\<forall>u<t+1. \<forall>v<t+1. y u j = y v j) \<or> (\<forall>s<t+1. y s j = s)"
@@ -2054,9 +1937,9 @@ proof-
       then have "y a j = y b j \<or> y s j = s" if "a < t + 1" "b < t +1" "s < t +1" for a b s
       proof cases
         case 1
-        then have "y a j = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t))) j" using that(1) unfolding y_def by auto
-        also have " ... = f j" using Bf_props(6) HEHE 1 that(1) by auto
-        also have " ... = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t))) j" using Bf_props(6) HEHE 1 that(2) by auto
+        then have "y a j = S (?f a) j" using that(1) unfolding y_def by auto
+        also have " ... = f j" using Bf_props(6) f_cube 1 that(1) by auto
+        also have " ... = S (?f b) j" using Bf_props(6) f_cube 1 that(2) by auto
         also have " ... = y b j" using that(2) unfolding y_def by simp
         finally show ?thesis by simp
       next
@@ -2066,31 +1949,30 @@ proof-
         then show ?thesis
         proof cases
           case 1
-          then have "y a j = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t))) j" using that(1) unfolding y_def by auto
-          also have " ... = (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t))) ii" using Bf_props(6) HEHE that(1) ii_prop by auto
+          then have "y a j = S (?f a) j" using that(1) unfolding y_def by auto
+          also have " ... = (?f a) ii" using Bf_props(6) f_cube that(1) ii_prop by auto
           also have " ... = 0" using 1 by (simp add: ii_prop)
-          also have " ... = (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t))) ii" using 1 by (simp add: ii_prop)
-          also have " ... = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t))) j" using Bf_props(6) HEHE that(2) ii_prop by auto
+          also have " ... = (?f b) ii" using 1 by (simp add: ii_prop)
+          also have " ... = S (?f b) j" using Bf_props(6) f_cube that(2) ii_prop by auto
           also have " ... = y b j" using that(2) unfolding y_def by auto
           finally show ?thesis by simp
         next
           case 2
-          then have "y s j = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))) j" using that(3) unfolding y_def by auto
-          also have " ... = (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))) ii" using Bf_props(6) HEHE that(3) ii_prop by auto
+          then have "y s j = S (?f s) j" using that(3) unfolding y_def by auto
+          also have " ... = (?f s) ii" using Bf_props(6) f_cube that(3) ii_prop by auto
           also have " ... = s" using 2 by (simp add: ii_prop)
           finally show ?thesis by simp
         next
           case 3
-          then have "y a j = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t))) j" using that(1) unfolding y_def by auto
-          also have " ... = (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t))) ii" using Bf_props(6) HEHE that(1) ii_prop by auto
+          then have "y a j = S (?f a) j" using that(1) unfolding y_def by auto
+          also have " ... = (?f a) ii" using Bf_props(6) f_cube that(1) ii_prop by auto
           also have " ... = t" using 3 uv_props by auto
-          also have " ... = (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t))) ii" using 3 uv_props by auto
-          also have " ... = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t))) j" using Bf_props(6) HEHE that(2) ii_prop by auto
+          also have " ... = (?f b) ii" using 3 uv_props by auto
+          also have " ... = S (?f b) j" using Bf_props(6) f_cube that(2) ii_prop by auto
           also have " ... = y b j" using that(2) unfolding y_def by auto
           finally show ?thesis by simp
         qed
       qed
-
       then show ?thesis by blast
     qed
   qed
@@ -2103,8 +1985,8 @@ proof-
     then obtain j where j_prop: "j \<in> B (k - v) \<and> j < n" using Bf_props(2) uv_props by force
     then have "y s j = s" if "s<t+1" for s
     proof
-      have "y s j = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))) j" using that unfolding y_def by auto
-      also have " ... = (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))) (k - v)" using Bf_props(6) HEHE that j_prop \<open>k - v < k\<close> by fast
+      have "y s j = S (?f s) j" using that unfolding y_def by auto
+      also have " ... = (?f s) (k - v)" using Bf_props(6) f_cube that j_prop \<open>k - v < k\<close> by fast
       also have " ... = s" using that j_prop \<open>k - v < k - u\<close> by simp
       finally show ?thesis .
     qed
@@ -2112,12 +1994,6 @@ proof-
   qed
   ultimately have Z1: "is_line y n (t+1)" unfolding is_line_def by blast
 
- (*   define y where "y \<equiv> (\<lambda>s \<in> {..t}. S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then s else t))))" *)
-(*      y i1 j = S \<Delta> j, with j<k. Ofc, S will either map S \<Delta> j \<rightarrow> f j or S \<Delta> j \<rightarrow> \<Delta> i, with j \<in> B i 
-
-to utilize classes; note that y i1 \<in> S ` classes k t SOMETHING ! ! ! \<longrightarrow> in fact y i1 \<in> S ` classes m t unto
-
-*)
   have k_color: "\<chi> e < k" if "e \<in> y ` {..<t+1}" for e using \<open>y \<in> {..<t+1} \<rightarrow>\<^sub>E cube n (t + 1)\<close> \<open>\<chi> \<in> cube n (t + 1) \<rightarrow>\<^sub>E {..<k}\<close> that by auto
   have "\<chi> e1 = \<chi> e2 \<and> \<chi> e1 < k" if "e1 \<in> y ` {..<t+1}" "e2 \<in> y ` {..<t+1}" for e1 e2 
   proof  
@@ -2132,37 +2008,34 @@ to utilize classes; note that y i1 \<in> S ` classes k t SOMETHING ! ! ! \<longr
       next
         case False
         then have "a < b" using le by linarith
-        then consider "b = t" | "b < t" 
-          by (metis Nat.add_0_right One_nat_def Suc_leI add_Suc_right le.prems(2) linorder_neqE_nat not_less)
+        then consider "b = t" | "b < t" using le.prems(2) by linarith
         then show ?thesis
         proof cases
           case 1
           then have "y b \<in> S ` classes k t v" 
           proof -
-            have "y b = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t)))" unfolding y_def using \<open>b = t\<close> by auto
-            moreover have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t))) \<in> classes k t v" using \<open>b = t\<close> HEHE_BETTER_v by blast
+            have "y b = S (?f b)" unfolding y_def using \<open>b = t\<close> by auto
+            moreover have "?f b \<in> classes k t v" using \<open>b = t\<close> f_classes_v by blast
             ultimately show "y b \<in> S ` classes k t v" by blast
           qed
           moreover have "x u \<in> classes k t u"
           proof -
-(*  define x where "x \<equiv> (\<lambda>i\<in>{..k}. \<lambda>j\<in>{..<k}. (if j < k - i then 0 else t))" *)
             have "x u cord = t" if "cord \<in> {k - u..<k}" for cord using uv_props that unfolding x_def by simp 
             moreover 
             {  
-              have "x u cord \<noteq> t" if "cord \<in> {..<k-u}" for cord using uv_props that assms(2) unfolding x_def by auto
-              then have "t \<notin> x u ` {..<k-u}" by blast
+              have "x u cord \<noteq> t" if "cord \<in> {..<k - u}" for cord using uv_props that assms(2) unfolding x_def by auto
+              then have "t \<notin> x u ` {..<k - u}" by blast
             }
             ultimately show "x u \<in> classes k t u" unfolding classes_def 
               using \<open>x ` {..k} \<subseteq> cube k (t + 1)\<close> uv_props by blast
           qed
           moreover have "x v \<in> classes k t v"
           proof -
-(*  define x where "x \<equiv> (\<lambda>i\<in>{..k}. \<lambda>j\<in>{..<k}. (if j < k - i then 0 else t))" *)
             have "x v cord = t" if "cord \<in> {k - v..<k}" for cord using uv_props that unfolding x_def by simp 
             moreover 
             {  
-              have "x v cord \<noteq> t" if "cord \<in> {..<k-v}" for cord using uv_props that assms(2) unfolding x_def by auto
-              then have "t \<notin> x v ` {..<k-v}" by blast
+              have "x v cord \<noteq> t" if "cord \<in> {..<k - v}" for cord using uv_props that assms(2) unfolding x_def by auto
+              then have "t \<notin> x v ` {..<k - v}" by blast
             }
             ultimately show "x v \<in> classes k t v" unfolding classes_def 
               using \<open>x ` {..k} \<subseteq> cube k (t + 1)\<close> uv_props by blast
@@ -2171,8 +2044,8 @@ to utilize classes; note that y i1 \<in> S ` classes k t SOMETHING ! ! ! \<longr
             by (metis imageE uv_props)
           moreover have "y a \<in> S ` classes k t u" 
           proof -
-            have "y a = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t)))" unfolding y_def using \<open>a < b\<close> 1 by simp
-            moreover have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t))) \<in> classes k t u" using \<open>a < b\<close> 1 HEHE_BETTER by blast
+            have "y a = S (?f a)" unfolding y_def using \<open>a < b\<close> 1 by simp
+            moreover have "?f a \<in> classes k t u" using \<open>a < b\<close> 1 f_classes_u by blast
             ultimately show "y a \<in> S ` classes k t u" by blast
           qed
           moreover have "\<chi> (y a) = \<chi> (S (x u))" using assms(1) calculation(2, 5) unfolding layered_subspace_def 
@@ -2182,17 +2055,16 @@ to utilize classes; note that y i1 \<in> S ` classes k t SOMETHING ! ! ! \<longr
         next
           case 2
           then have "a < t" using \<open>a < b\<close> less_trans by blast
-          thm classes_def
           then have "y a \<in> S ` classes k t u"
           proof -
-            have "y a = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t)))" unfolding y_def using \<open>a < t\<close> by auto
-            moreover have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then a else t))) \<in> classes k t u" using \<open>a < t\<close> HEHE_BETTER by blast
+            have "y a = S (?f a)" unfolding y_def using \<open>a < t\<close> by auto
+            moreover have "?f a \<in> classes k t u" using \<open>a < t\<close> f_classes_u by blast
             ultimately show "y a \<in> S ` classes k t u" by blast
           qed
           moreover have "y b \<in> S ` classes k t u"
           proof -
-            have "y b = S (\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t)))" unfolding y_def using \<open>b < t\<close> by auto
-            moreover have "(\<lambda>i \<in> {..<k}. (if i < k - v then 0 else (if i < k - u then b else t))) \<in> classes k t u" using \<open>b < t\<close> HEHE_BETTER by blast
+            have "y b = S (?f b)" unfolding y_def using \<open>b < t\<close> by auto
+            moreover have "?f b \<in> classes k t u" using \<open>b < t\<close> f_classes_u by blast
             ultimately show "y b \<in> S ` classes k t u" by blast
           qed
           ultimately have "\<chi> (y a) = \<chi> (y b)" using assms(1) uv_props unfolding layered_subspace_def by (metis imageE)
@@ -2208,47 +2080,16 @@ to utilize classes; note that y i1 \<in> S ` classes k t SOMETHING ! ! ! \<longr
   then have Z2: "\<exists>c < k. \<forall>e \<in> y ` {..<t+1}. \<chi> e = c"
     by (meson image_eqI lessThan_iff less_add_one)
 
-  from Z1 Z2 show " \<exists>L c. c < k \<and> is_line L n (t + 1) \<and> (\<forall>y\<in>L ` {..<t + 1}. \<chi> y = c)" by blast
+  from Z1 Z2 show "\<exists>L c. c < k \<and> is_line L n (t + 1) \<and> (\<forall>y\<in>L ` {..<t + 1}. \<chi> y = c)" by blast
 
 qed
 
-
-
-  text \<open>Gonna go to sleep. Proof in book is clever:
-  
-  let u = 3, v = 6; k = 8
-  then x_u = (t, t, t, 0, 0, 0, 0, 0)
-       x_v = (t, t, t, t, t, t, 0, 0)
-  and the line (y0, ..., yt)
-         y = (t, t, t, *, *, *, 0, 0)
-  the points y0, ..., yt are in the class k t k, hence have same color as x_u.
-
-  But my idea: since I define classes slightly differently (i.e. I force *all* rightmost positions to be t),
-maybe I can define:
-      x_u = (0, 0, 0, 0, 0, t, t, t)
-      x_v = (0, 0, 0, t, t, t, t, t)
-        y = (0, 0, 0, *, *, t, t, t)
-then the points y0, ..., y(t-1) are in class k t u and have same color as x_u.
- and the point  yt is in class k t k and has the same color as x_v, which is the color of x_u.
-
-
-
-classes 5 t 3 -> {(<t,<t,t,t,t)}
-classes 5 t 5 -> {(t,t,t,t,t)}
-
-
-
-\<close>
-
-lemma cor6: assumes "(\<And>r k. lhj r t k)" "t>0"  shows "(hj r (t+1))"
+lemma corollary6: assumes "(\<And>r k. lhj r t k)" "t>0" shows "(hj r (t+1))"
   using assms(1)[of r r] assms(2) unfolding hj_def lhj_def using thm5
   by metis
 
 
-lemma "\<not>hj 0 0"
-  by (auto simp: hj_def cube_def)
-
-lemma base: assumes "r > 0" shows "hj r 0"
+lemma hj_r_nonzero_t_0: assumes "r > 0" shows "hj r 0"
 proof-
   have "(\<exists>L c. c < r \<and> is_line L N' 0 \<and> (\<forall>y \<in> L ` {..<0::nat}. \<chi> y = c))" if "N' \<ge> 1" "\<chi> \<in> cube N' 0 \<rightarrow>\<^sub>E {..<r}" for N' \<chi>
     using assms is_line_def that(1) by fastforce
@@ -2266,14 +2107,14 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-lemma base1: "hj r 1"
+lemma hj_t_1: "hj r 1"
   unfolding hj_def using AUX2BASE1 le_zero_eq not_le  
   by (metis less_numeral_extra(1))
 
 lemma hales_jewett: "\<not>(r = 0 \<and> t = 0) \<Longrightarrow> hj r t"
   apply (induction t arbitrary: r)
-  using  base apply blast
- using base1 thm4 cor6 
+  using hj_r_nonzero_t_0 apply blast
+ using hj_t_1 theorem4 corollary6 
   by (metis One_nat_def Suc_eq_plus1 neq0_conv)
 
 unused_thms
