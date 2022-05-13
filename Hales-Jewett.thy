@@ -74,15 +74,6 @@ lemma shiftset_image:
   shows "(\<Union>i\<in>{..k}. shiftset m (B i)) = {m..<m+n}"
   using assms by (simp add: shiftset_altdef add.commute flip: image_UN atLeast0LessThan)
 
-lemma union_shift: "(\<Union>i \<in> {a::nat..<a+b}. B (i - a)) = (\<Union>i \<in> {..<b::nat}. B i)"
-proof-
-  have   "(\<Union>i \<in> {a::nat..<a+b}. B (i - a)) = (\<Union>i \<in> (\<lambda>i. i - a) ` {a::nat..<a+b}. B i)" by blast
-  also have "(\<lambda>i. i - a) ` {a::nat..<a+b} = {..<b::nat}"
-    by (subst image_minus_const_atLeastLessThan_nat) auto
-  finally show ?thesis .
-qed
-  
-
 lemma split_cube: assumes "x \<in> cube (k+1) t" shows "(\<lambda>y \<in> {..<1}. x y) \<in> cube 1 t" and "(\<lambda>y \<in> {..<k}. x (y + 1)) \<in> cube k t"
   using assms unfolding cube_def by auto
 
