@@ -27,9 +27,6 @@ lemma cube_card: "card ({..<n::nat} \<rightarrow>\<^sub>E {..<t::nat}) = t ^ n"
   by auto
 
 
-lemma linorder_wlog_fun[case_names le sym]: "(\<And>a b. (f::('a \<Rightarrow> 'c) \<Rightarrow> ('b :: linorder)) a  \<le> f b \<Longrightarrow> P (f a) (f b)) \<Longrightarrow> (\<And>a b. P (f b) (f a) \<Longrightarrow> P (f a) (f b)) \<Longrightarrow> P (f a) (f b)"
-  by (cases rule: le_cases[of "f a" "f b"]; blast+)
-
 lemma cube1: "cube n 1 = {\<lambda>x\<in>{..<n}. 0}" unfolding cube_def by (simp add: lessThan_Suc)
 
 definition is_line :: "(nat \<Rightarrow> (nat \<Rightarrow> nat)) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool"
@@ -49,43 +46,7 @@ proof -
   ultimately show ?thesis by blast
 qed
 
-lemma is_line_elim:
-  assumes "is_line L n t" and "t > 0"
-  shows "\<exists>B\<^sub>0 B\<^sub>1. B\<^sub>0 \<union> B\<^sub>1 = {..<n} \<and> B\<^sub>0 \<inter> B\<^sub>1 = {} \<and> B\<^sub>0 \<noteq> {} \<and> (\<forall>j \<in> B\<^sub>1. (\<forall>x<t. \<forall>y<t. L x j = L y j)) \<and> (\<forall>j \<in> B\<^sub>0. (\<forall>s<t. L s j = s))"
-proof -
-  consider "t = 1" | "t > 1" using assms(2) by linarith
-  then show ?thesis
-  proof cases
-    case 1
-    then show ?thesis using is_line_elim_t_1 assms(1) by simp
-  next
-    case 2
-    define B0 where "B0 = {j \<in> {..<n}. (\<forall>s<t. L s j = s)}"
-    define B1 where "B1 = {j \<in> {..<n}. (\<forall>x<t. \<forall>y<t. L x j = L y j)}"
 
-    from 2 assms(1) have "B0 \<noteq> {}" unfolding is_line_def B0_def by simp 
-    moreover from assms have "B0 \<union> B1 = {..<n}" unfolding is_line_def B0_def B1_def by auto
-    moreover have "\<forall>j \<in> B0. \<forall>s<t. L s j = s" unfolding B0_def by simp
-    moreover have "\<forall>j \<in> B1. \<forall>x<t. \<forall>y<t. L x j = L y j" unfolding B1_def by blast
-    moreover have "B0 \<inter> B1 = {}" 
-    proof(safe)
-      fix i assume "i \<in> B0" "i\<in>B1"
-      then have "(\<forall>s < t. L s i = s) " unfolding B0_def by simp
-      then have "\<not>(\<forall>x<t. \<forall>y<t. L x i = L y i)" using 2 less_trans 
-        by (metis less_numeral_extra(1) zero_neq_one)
-      then have False using \<open>i \<in> B1\<close> unfolding B1_def by blast
-      then show "i \<in> {}" by simp
-    qed
-    ultimately show ?thesis by blast
-  qed
-  
-qed
-
-lemma is_line_elim_alt:
-  assumes "is_line L n t" and "t > 0"
-  shows "\<exists>BL. BL \<subseteq> {..<n} \<and> BL \<noteq> {} \<and> (\<forall>j \<in> {..<n} - BL. (\<forall>x<t. \<forall>y<t. L x j = L y j)) \<and> (\<forall>j \<in> BL. (\<forall>s<t. L s j = s))"
-  using is_line_elim[of L n t]
-  by (metis Diff_Diff_Int Int_Diff_Un Int_commute Un_Diff Un_empty_right Un_upper1 assms(1) assms(2))
 
 lemma aux2: "is_line L n t \<Longrightarrow> (\<forall>s<t. L s \<in> cube n t)"
   unfolding cube_def is_line_def
@@ -147,21 +108,6 @@ proof
 	then show "x = y" using a(1,2) unfolding cube_def by (meson PiE_ext lessThan_iff)
 qed
 
-lemma subspace_card: assumes "is_subspace S k n t" and "t > 1" shows "k \<le> n" 
-proof -
-  from assms have "S \<in> cube k t \<rightarrow>\<^sub>E cube n t" unfolding is_subspace_def by blast
-  then have "S ` cube k t \<subseteq> cube n t" by blast
-  then have "card (S ` cube k t) \<le> card (cube n t)" 
-    by (simp add: card_mono cube_def finite_PiE)
-  moreover have "card (S ` cube k t) = card (cube k t)" using subspace_inj_on_cube[of S k n t] assms card_image by blast
-  ultimately have "card (cube k t) \<le> card (cube n t)" by auto
-  then have "t ^ k \<le> t ^ n" using cube_card by (simp add: cube_def)
-  then show "k \<le> n" using assms(2) by auto
-
-
-
-qed
-
 lemma dim0_subspace: assumes "t > 0" shows "\<exists>S. is_subspace S 0 n t"
 proof-
   define B where "B \<equiv> (\<lambda>x::nat. undefined)(0:={..<n})"
@@ -218,35 +164,6 @@ lemma disjoint_family_onI [intro]:
   assumes "\<And>m n. m \<in> S \<Longrightarrow> n \<in> S \<Longrightarrow> m \<noteq> n \<Longrightarrow> A m \<inter> A n = {}"
   shows   "disjoint_family_on A S"
   using assms by (auto simp: disjoint_family_on_def)
-
-lemma disjoint_classes: "disjoint_family_on (classes n t) {..n}"
-proof
-  fix i j
-  assume "i \<in> {..n}" "j \<in> {..n}" "i \<noteq> j"
-  thus "classes n t i \<inter> classes n t j = {}"
-  proof (induction i j rule: linorder_wlog)
-    case (le a b)
-    show ?case
-    proof (rule ccontr)
-      assume "classes n t a \<inter> classes n t b \<noteq> {}"
-      then obtain x where x_def: "x \<in> classes n t a \<inter> classes n t b" by blast
-      {
-        have "n - a - 1 \<in> {n - b..<n}" using le by force
-        then have "x (n - a - 1) = t" using x_def unfolding classes_def by blast
-      }
-      moreover
-      {
-        have "n - a - 1 \<in> {..<n - a}" using le by force
-        then have "x (n - a - 1) \<noteq> t" using x_def unfolding classes_def by blast
-      }
-      ultimately show False by blast
-    qed
-  next
-    case (sym a b)
-    thus ?case by (simp add: Int_commute)
-  qed
-qed
-
 
 lemma fun_ex: "a \<in> A \<Longrightarrow> b \<in> B \<Longrightarrow> \<exists>f \<in> A \<rightarrow>\<^sub>E B. f a = b" 
 proof-
