@@ -1,10 +1,8 @@
 session bthesis = HOL +
-  options [document = pdf, document_output = "output"]
-(*theories [document = false]
-    A
-    B
-  theories
-    C
-    D*)
-  document_files
-    "root.tex"
+    options [document = pdf, document_output = "generated"]
+    sessions
+      "HOL-Library"
+    theories
+      "Hales-Jewett"
+    document_files
+      "root.tex" 
