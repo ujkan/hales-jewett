@@ -3,6 +3,7 @@ session bthesis = HOL +
     sessions
       "HOL-Library"
     theories
-      "Hales-Jewett"
+      "Hales_Jewett"
     document_files
       "root.tex" 
+      "root.bib"

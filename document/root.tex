@@ -34,11 +34,17 @@
 
 
 \begin{document}
-
-\title{Hales-Jewett}
-\author{ujkan}
+\title{The Hales-Jewett Theorem}
+\author{Ujkan Sulejmani}
 \maketitle
 
+\begin{abstract}
+    This document is a formalisation of a proof of the Hales-Jewett theorem presented in~\cite{thebook}.
+    The Hales-Jewett theorem is a result in Ramsey Theory which states that, for any non-negative integers $r$ and $t$, there exists a minimal dimension $N$, such that any $r$-coloured $M$-dimensional cube over $t$ elements (with $M \geq N$) contains a monochromatic line. This theorem generalises Van der Waerden's Theorem, which has already been formalised in \cite{vdw}. This generalisation has not been formalised; refer to \cite{thebook} for an outline of the generalisation argument.
+\end{abstract}
+
+
+\newpage
 \tableofcontents
 
 % sane default for proof documents
@@ -48,8 +54,9 @@
 \input{session}
 
 % optional bibliography
-%\bibliographystyle{abbrv}
-%\bibliography{root}
+\nocite{vdw}
+\bibliographystyle{abbrv}
+\bibliography{root}
 
 \end{document}
 
