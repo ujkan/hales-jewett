@@ -6,12 +6,12 @@ section \<open>Preliminaries\<close>
 
 text \<open>The Hales-Jewett Theorem is at its core a statement about sets of tuples called the n-dimensional cube over t elements; i.e.\ the set $\{0,\ldots,t - 1\}^n$, where $\{0,\ldots,t - 1\}$ is called the base. 
 We use functions $f : \{0,\ldots,n - 1\} \rightarrow \{0,\ldots,t - 1\}$ instead of tuples because they're easier to
- deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$. \<open>cube n t \<equiv> {..<n} \<rightarrow>\<^sub>E {..<t}\<close>. 
+ deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$.
 Furthermore, $r$-colourings are denoted by mappings from the function space to the set $\{0,\ldots, r-1\}$.\<close>
 
 subsection \<open>The $n$-dimensional cube over $t$ elements\<close>
 
-text \<open>Function spaces in Isabelle are supported by the library construct FuncSet. In essence, \<open>f \<in> A \<rightarrow>\<^sub>E B\<close> means \<open>a \<in> A \<Longrightarrow> f a \<in> B\<close> and \<open>a \<notin> A \<Longrightarrow> f a = undefined\<close>\<close>
+text \<open>Function spaces in Isabelle are supported by the library component FuncSet. In essence, \<open>f \<in> A \<rightarrow>\<^sub>E B\<close> means \<open>a \<in> A \<Longrightarrow> f a \<in> B\<close> and \<open>a \<notin> A \<Longrightarrow> f a = undefined\<close>\<close>
 
 text \<open>The (canonical) $n$-dimensional cube over $t$ elements is defined in the following using the variables:
 

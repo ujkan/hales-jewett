@@ -38,7 +38,7 @@
 \begin{isamarkuptext}%
 The Hales-Jewett Theorem is at its core a statement about sets of tuples called the n-dimensional cube over t elements; i.e.\ the set $\{0,\ldots,t - 1\}^n$, where $\{0,\ldots,t - 1\}$ is called the base. 
 We use functions $f : \{0,\ldots,n - 1\} \rightarrow \{0,\ldots,t - 1\}$ instead of tuples because they're easier to
- deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$. \isa{cube\ n\ t\ {\isasymequiv}\ {\isacharbraceleft}{\kern0pt}{\isachardot}{\kern0pt}{\isachardot}{\kern0pt}{\isacharless}{\kern0pt}n{\isacharbraceright}{\kern0pt}\ {\isasymrightarrow}\isactrlsub E\ {\isacharbraceleft}{\kern0pt}{\isachardot}{\kern0pt}{\isachardot}{\kern0pt}{\isacharless}{\kern0pt}t{\isacharbraceright}{\kern0pt}}. 
+ deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$.
 Furthermore, $r$-colourings are denoted by mappings from the function space to the set $\{0,\ldots, r-1\}$.%
 \end{isamarkuptext}\isamarkuptrue%
 %
@@ -60,7 +60,7 @@ Furthermore, $r$-colourings are denoted by mappings from the function space to t
 \endisadelimdocument
 %
 \begin{isamarkuptext}%
-Function spaces in Isabelle are supported by the library construct FuncSet. In essence, \isa{f\ {\isasymin}\ A\ {\isasymrightarrow}\isactrlsub E\ B} means \isa{a\ {\isasymin}\ A\ {\isasymLongrightarrow}\ f\ a\ {\isasymin}\ B} and \isa{a\ {\isasymnotin}\ A\ {\isasymLongrightarrow}\ f\ a\ {\isacharequal}{\kern0pt}\ undefined}%
+Function spaces in Isabelle are supported by the library component FuncSet. In essence, \isa{f\ {\isasymin}\ A\ {\isasymrightarrow}\isactrlsub E\ B} means \isa{a\ {\isasymin}\ A\ {\isasymLongrightarrow}\ f\ a\ {\isasymin}\ B} and \isa{a\ {\isasymnotin}\ A\ {\isasymLongrightarrow}\ f\ a\ {\isacharequal}{\kern0pt}\ undefined}%
 \end{isamarkuptext}\isamarkuptrue%
 %
 \begin{isamarkuptext}%
