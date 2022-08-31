@@ -34,6 +34,12 @@ lemma cube_restrict:
     and "y \<in> cube n t" 
   shows "(\<lambda>g \<in> {..<j}. y g) \<in> cube j t" using assms unfolding cube_def by force
 
+text \<open>A line $L$ in the $n$-dimensional cube
+
+\begin{tabular}{lcp{8cm}}
+$n$:& \<open>nat\<close>& dimension\\
+$t$:&  \<open>nat\<close>& the size of the base\\
+\end{tabular}\<close>
 text \<open>Narrowing down the obvious fact $B^A \subseteq C^A$ if $B \subseteq C$ to a specific case for cubes. \<close>
 lemma cube_subset: "cube n t \<subseteq> cube n (t + 1)"
   unfolding cube_def using PiE_mono[of "{..<n}" "\<lambda>x. {..<t}" "\<lambda>x. {..<t+1}"]
