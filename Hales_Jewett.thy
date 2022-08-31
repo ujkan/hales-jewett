@@ -2,14 +2,14 @@ theory "Hales_Jewett"
   imports Main "HOL-Library.Disjoint_Sets" "HOL-Library.FuncSet"
 begin
 
-section \<open>Hales-Jewett Theorem\<close>
+section \<open>Preliminaries\<close>
 
-text \<open>The Hales-Jewett Theorem is at its core a statement about sets of tuples called the n-dimensional cube over t elements; i.e. the set $[t]^n$, where $[t]$ is called the base. 
-We use functions $f : [n] \rightarrow [t]$ instead of tuples because they're easier to
- deal with. The set of tuples then becomes the function space $[t]^{[n]}$.  \<open>cube n t \<equiv> {..<n} \<rightarrow>\<^sub>E {..<t}\<close>. 
-Furthermore, $r$-colorings are denoted by mappings from the function space to the set $\{0,\ldots, r-1\}$.\<close>
+text \<open>The Hales-Jewett Theorem is at its core a statement about sets of tuples called the n-dimensional cube over t elements; i.e.\ the set $\{0,\ldots,t - 1\}^n$, where $\{0,\ldots,t - 1\}$ is called the base. 
+We use functions $f : \{0,\ldots,n - 1\} \rightarrow \{0,\ldots,t - 1\}$ instead of tuples because they're easier to
+ deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$. \<open>cube n t \<equiv> {..<n} \<rightarrow>\<^sub>E {..<t}\<close>. 
+Furthermore, $r$-colourings are denoted by mappings from the function space to the set $\{0,\ldots, r-1\}$.\<close>
 
-subsection \<open>Cubes $C^n_t$\<close>
+subsection \<open>The $n$-dimensional cube over $t$ elements\<close>
 
 text \<open>Function spaces in Isabelle are supported by the library construct FuncSet. In essence, \<open>f \<in> A \<rightarrow>\<^sub>E B\<close> means \<open>a \<in> A \<Longrightarrow> f a \<in> B\<close> and \<open>a \<notin> A \<Longrightarrow> f a = undefined\<close>\<close>
 
@@ -28,6 +28,7 @@ lemma PiE_uniqueness: "f ` A \<subseteq> B \<Longrightarrow> \<exists>!g \<in> A
   using exI[of "\<lambda>x. x \<in> A \<rightarrow>\<^sub>E B \<and> (\<forall>a\<in>A. x a = f a)" "restrict f A"] PiE_ext PiE_iff by fastforce
 
 
+text \<open>Any prefix of length $j$ of an $n$-tuple (i.e.\ element of $C^n_t$) is a $j$-tuple (i.e.\ element of $C^j_t$).\<close>
 lemma cube_restrict: 
   assumes "j < n" 
     and "y \<in> cube n t" 
@@ -52,7 +53,7 @@ text \<open>The cardinality of the n-dimensional over t elements is simply a con
 lemma cube_card: "card ({..<n::nat} \<rightarrow>\<^sub>E {..<t::nat}) = t ^ n"
   by (simp add: card_PiE)
 
-text \<open>A simplifying definition for the n-dimensional cube over a single element, i.e. the single n-dimensional point (0, 0, ..., 0).\<close>
+text \<open>A simplifying definition for the n-dimensional cube over a single element, i.e.\ the single n-dimensional point (0, 0, ..., 0).\<close>
 lemma cube1_alt_def: "cube n 1 = {\<lambda>x\<in>{..<n}. 0}" unfolding cube_def by (simp add: lessThan_Suc)
 
 subsection \<open>Lines\<close>
@@ -99,23 +100,33 @@ lemma line_points_in_cube_unfolded:
   shows "L s j \<in> {..<t}" 
   using assms line_points_in_cube unfolding cube_def by blast
 
-definition shiftset :: "nat \<Rightarrow> nat set \<Rightarrow> nat set"
+text \<open>The incrementation of all elements of a set is defined in the following using the variables:
+
+\begin{tabular}{llp{8cm}}
+$n$:& \<open>nat\<close>& increment size\\
+$S$:& \<open>nat set\<close>& set\\
+\end{tabular}\<close>
+definition set_incr :: "nat \<Rightarrow> nat set \<Rightarrow> nat set"
   where
-  	"shiftset n S \<equiv> (\<lambda>a. a + n) ` S"
+  	"set_incr n S \<equiv> (\<lambda>a. a + n) ` S"
 
-lemma shiftset_disjnt: "disjnt A B \<Longrightarrow> disjnt (shiftset n A) (shiftset n B)" 
-  unfolding disjnt_def shiftset_def by force
+lemma set_incr_disjnt: 
+  assumes "disjnt A B" 
+  shows "disjnt (set_incr n A) (set_incr n B)" 
+  using assms unfolding disjnt_def set_incr_def by force
 
-lemma shiftset_disjoint_family: "disjoint_family_on B {..k} \<Longrightarrow> disjoint_family_on (\<lambda>i. shiftset n (B i)) {..k}" using shiftset_disjnt unfolding disjoint_family_on_def 
-  by (meson disjnt_def)
+lemma set_incr_disjoint_family: 
+  assumes "disjoint_family_on B {..k}" 
+  shows " disjoint_family_on (\<lambda>i. set_incr n (B i)) {..k}" 
+  using assms set_incr_disjnt unfolding disjoint_family_on_def by (meson disjnt_def)
 
-lemma shiftset_altdef: "shiftset n S = (+) n ` S"
-  by (auto simp: shiftset_def)
-lemma shiftset_image:
+lemma set_incr_altdef: "set_incr n S = (+) n ` S"
+  by (auto simp: set_incr_def)
+
+lemma set_incr_image:
   assumes "(\<Union>i\<in>{..k}. B i) = {..<n}"
-  shows "(\<Union>i\<in>{..k}. shiftset m (B i)) = {m..<m+n}"
-  using assms by (simp add: shiftset_altdef add.commute flip: image_UN atLeast0LessThan)
-
+  shows "(\<Union>i\<in>{..k}. set_incr m (B i)) = {m..<m+n}"
+  using assms by (simp add: set_incr_altdef add.commute flip: image_UN atLeast0LessThan)
 
 text \<open>Each tuple of dimension $k+1$ can be split into a tuple of dimension $1$---the first entry---and a tuple of dimension $k$---the remaining entries.\<close>
 lemma split_cube: 
@@ -137,8 +148,7 @@ $t$:& \<open>nat\<close>& the size of the cube's base
 definition is_subspace
   where "is_subspace S k n t \<equiv> (\<exists>B f. disjoint_family_on B {..k} \<and> \<Union>(B ` {..k}) = {..<n} \<and> ({} \<notin> B ` {..<k}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> S \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> (\<forall>y \<in> cube k t. (\<forall>i \<in> B k. S y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (S y) i = y j)))"
 
-text \<open>A subspace can be thought of as an embedding of the $k$-dimensional cube
-  into $C^n_t$, akin to how a $k$-dimensional vector subspace of $\mathbf{R}^n$ may be thought of as an embedding of $\mathbf{R}^k$ into $\mathbf{R}^n$.\<close> 
+text \<open>A subspace can be thought of as an embedding of the $k$-dimensional cube $C^k_t$ into $C^n_t$, akin to how a $k$-dimensional vector subspace of $\mathbf{R}^n$ may be thought of as an embedding of $\mathbf{R}^k$ into $\mathbf{R}^n$.\<close> 
 lemma subspace_inj_on_cube: 
   assumes "is_subspace S k n t" 
   shows "inj_on S (cube k t)"
@@ -269,7 +279,7 @@ qed
 
 text \<open>An alternative introduction rule for the $\exists!x$ quantifier, which means "there exists exactly one $x$".\<close>
 lemma ex1I_alt: "(\<exists>x. P x \<and> (\<forall>y. P y \<longrightarrow> x = y)) \<Longrightarrow> (\<exists>!x. P x)" 
-  by blast
+  by auto
 lemma nat_set_eq_one_dim_cube: "bij_betw (\<lambda>x. \<lambda>y\<in>{..<1::nat}. x) {..<k::nat} (cube 1 k)"
 proof (unfold bij_betw_def)
   have *: "(\<lambda>x. \<lambda>y\<in>{..<1::nat}. x) ` {..<k} = cube 1 k"
@@ -305,7 +315,7 @@ lemma bij_domain_PiE:
   shows "(restrict (g \<circ> f) A1) \<in> A1 \<rightarrow>\<^sub>E B"
   using bij_betwE assms by fastforce
 
-text \<open>The following two lemmas relate lines to $1$-dimensional subspaces (in the natural way). This is (almost) a direct consequence of the elimination rule \<open>is_line_elim\<close> introduced above.\<close>
+text \<open>The following three lemmas relate lines to $1$-dimensional subspaces (in the natural way). This is a direct consequence of the elimination rule \<open>is_line_elim\<close> introduced above.\<close>
 lemma line_is_dim1_subspace_t_1: 
   assumes "n > 0" 
     and "is_line L n 1"
@@ -437,19 +447,26 @@ lemma line_is_dim1_subspace:
   shows "is_subspace (restrict (\<lambda>y. L (y 0)) (cube 1 t)) 1 n t"
   using line_is_dim1_subspace_t_1[of n L] line_is_dim1_subspace_t_ge_1[of n t L] assms not_less_iff_gr_or_eq by blast
 
+text \<open>The key property of the existence of a minimal dimension $N$, such that for any $r$-colouring in $C^{N'}_t$ (for $N' \geq N$) there exists a monochromatic line is defined in the following using the variables:
+
+\begin{tabular}{llp{8cm}}
+$r$:& \<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the number of colours\\
+$t$:& \<open>nat\<close>& the size of of the base
+\end{tabular}\<close>
 definition hj 
   where "hj r t \<equiv> (\<exists>N>0. \<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> (\<forall>y \<in> L ` {..<t}. \<chi> y = c)))"
 
+text \<open>The key property of the existence of a minimal dimension $N$, such that for any $r$-colouring in $C^{N'}_t$ (for $N' \geq N$) there exists a layered subspace of dimension $k$ is defined in the following using the variables:
+
+\begin{tabular}{llp{8cm}}
+$r$:& \<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the number of colours\\
+$t$:& \<open>nat\<close>& the size of of the base\\
+$k$:& \<open>nat\<close>& the dimension of the subspace
+\end{tabular}\<close>
 definition lhj
-  where "lhj r t k \<equiv> (\<exists>M > 0. \<forall>M' \<ge> M. \<forall>\<chi>. \<chi> \<in> (cube M' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k M' t r \<chi>))"
+  where "lhj r t k \<equiv> (\<exists>N > 0. \<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k N' t r \<chi>))"
 
-
-
-text \<open>Claiming k-dimensional subspaces of (cube n t) are isomorphic to (cube k t)\<close>
-definition is_subspace_alt
-  where "is_subspace_alt S k n t \<equiv> (\<exists>\<phi>. k \<le> n \<and> bij_betw \<phi> S (cube k t))"
-
-text \<open>Some useful facts about 1-dimensional subspaces.\<close>
+text \<open>We state some useful facts about 1-dimensional subspaces.\<close>
 lemma dim1_subspace_elims: 
   assumes "disjoint_family_on B {..1::nat}" and "\<Union>(B ` {..1::nat}) = {..<n}" and "({} \<notin> B ` {..<1::nat})" and  "f \<in> (B 1) \<rightarrow>\<^sub>E {..<t}" and "S \<in> (cube 1 t) \<rightarrow>\<^sub>E (cube n t)" and "(\<forall>y \<in> cube 1 t. (\<forall>i \<in> B 1. S y i = f i) \<and> (\<forall>j<1. \<forall>i \<in> B j. (S y) i = y j))"
   shows "B 0 \<union> B 1 = {..<n}"
@@ -467,28 +484,21 @@ next
   show "B 0 \<noteq> {}" using assms(3) by auto
 qed
 
-text \<open>Useful properties about cubes.\<close>
+text \<open>We state some properties of cubes.\<close>
 lemma cube_props:
-  shows "\<forall>s \<in> {..<t}. \<exists>p \<in> cube 1 t. p 0 = s"
-    and "\<forall>s \<in> {..<t}. (SOME p. p \<in> cube 1 t \<and> p 0 = s) 0 = s"
-    and "\<forall>s \<in> {..<t}. (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) s = (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) ((SOME p. p \<in> cube 1 t \<and> p 0 = s) 0)"
-    and "\<forall>s \<in> {..<t}. (SOME p. p \<in> cube 1 t \<and> p 0 = s) \<in> cube 1 t"
+  assumes "s < t"
+  shows "\<exists>p \<in> cube 1 t. p 0 = s"
+    and "(SOME p. p \<in> cube 1 t \<and> p 0 = s) 0 = s"
+    and "(\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) s = (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) ((SOME p. p \<in> cube 1 t \<and> p 0 = s) 0)"
+    and "(SOME p. p \<in> cube 1 t \<and> p 0 = s) \<in> cube 1 t"
 proof -
-  show 1: "\<forall>s \<in> {..<t}. \<exists>p \<in> cube 1 t. p 0 = s" unfolding cube_def by (simp add: fun_ex)
-  show 2: "\<forall>s \<in> {..<t}. (SOME p. p \<in> cube 1 t \<and> p 0 = s) 0 = s"
-  proof(safe)
-    fix s
-    assume "s < t"
-    then have "\<exists>p \<in> cube 1 t. p 0 = s" 
-      using \<open>\<forall>s\<in>{..<t}. \<exists>p\<in>cube 1 t. p 0 = s\<close> by blast
-    then show "(SOME p. p \<in> cube 1 t \<and>  p 0 = s) 0 = s" using someI_ex[of "\<lambda>x. x \<in> cube 1 t \<and> x 0 = s"] by auto
-  qed
-
-  show 3: "\<forall>s \<in> {..<t}. (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) s = (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) ((SOME p. p \<in> cube 1 t \<and> p 0 = s) 0)" using 2 by simp
-  have 4: "(SOME p. p \<in> cube 1 t \<and> p 0 = s) \<in> cube 1 t" if "s \<in> {..<t}" for s using 1 someI_ex[of "\<lambda>p. p \<in> cube 1 t \<and> p 0 = s"] that by blast
-  then show "\<forall>s \<in> {..<t}. (SOME p. p \<in> cube 1 t \<and> p 0 = s) \<in> cube 1 t" by simp
+  show 1: "\<exists>p \<in> cube 1 t. p 0 = s" using assms unfolding cube_def by (simp add: fun_ex)
+  show 2: "(SOME p. p \<in> cube 1 t \<and> p 0 = s) 0 = s" using assms 1 someI_ex[of "\<lambda>x. x \<in> cube 1 t \<and> x 0 = s"] by blast 
+  show 3: "(\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) s = (\<lambda>s\<in>{..<t}. S (SOME p. p\<in>cube 1 t \<and> p 0 = s)) ((SOME p. p \<in> cube 1 t \<and> p 0 = s) 0)" using 2 by simp
+  show 4: "(SOME p. p \<in> cube 1 t \<and> p 0 = s) \<in> cube 1 t" using 1 someI_ex[of "\<lambda>p. p \<in> cube 1 t \<and> p 0 = s"] assms by blast
 qed
 
+text \<open>The following lemma relates $1$-dimensional subspaces to lines, thus establishing a bidirectional correspondence between the two together with $\ref{lem:line_is_dim1_subspace}$\<close>
 lemma dim1_subspace_is_line: 
   assumes "t > 0" 
     and "is_subspace S 1 n t" 
@@ -660,7 +670,11 @@ lemma subspace_elems_embed:
   using assms unfolding cube_def is_subspace_def by blast
 
 
-text \<open>Base case of Theorem 4\<close>
+section \<open>Core proofs\<close>
+text\<open>The numbering of the theorems has been borrowed from \cite{thebook}.\<close>
+
+subsection \<open>Theorem 4\<close>
+subsubsection \<open>Base case of Theorem 4\<close>
 lemma hj_imp_lhj_base: 
   fixes r t
   assumes "t > 0"
@@ -993,31 +1007,18 @@ proof-
   then show ?thesis using N_def unfolding layered_subspace_def lhj_def by auto
 qed
 
-text \<open>The induction step of theorem 4. Heart of the proof\<close>
-text \<open>
-Proof sketch/idea:
-  * we prove lhj r t (k+1) for all r at once. That means we assume hj r t for all r, and lhj r t k' for all r (and all dimensions k' less than k+1)
-  * remember: hj -> statement about monochromatic lines, lhj -> statement about layered subspaces (k-dimensional)
-  * core idea: to construct (k+1)-dimensional subspace, use (by induction) k-dimensional subspace and (by assumption) 1-dimensional subspace (line) in some natural way (ensuring the colorings satisfy the requisite conditions)
-
-In detail:
-  - let \<open>\<chi>\<close> be an r-coloring, for which we wish to show that there exists a layered (k+1)-dimensional subspace.
-  - (SECTION 1) by our assumptions, we can obtain a layered k-dimensional subspace S (w.r.t. r-colorings) and a layered line L (w.r.t. to s-colorings, where s=f(r) is constructed from r to facilitate our main proof; details irrelevant)
-  - let m be the dimension of the cube in which the layered k-dimensional subspace S exists
-  - let n' be the dimension of the cube in which the layered line L exists
-  - we claim that the layered (k+1)-dimensional subspace we are looking for exists in the (m+n')-dimensional cube
-    - concretely, we construct these (m+n')-dimensional elements (i.e. tuples) by setting the first n' coordinates to points on the line, and the last m coordinates to points on the subspace.
-    - (SECTION 2) this construction yields a subspace (i.e. satisfying the subspace properties). We call this T''. 
-    -  We prove it is a subspace in SECTION 3. In SECTION 4, we show it is layered.
-\<close>
+subsubsection \<open>Induction step of theorem 4\<close>
 
 
-(* The proof occurs in four steps:
-Firstly, we obtain two layered subspaces of dimension 1 and k (respectively), whose existence is guaranteed by the assumption lhj (i.e. the induction hypothesis). Additionally, we prove some useful facts about these.
-Secondly, we construct a (k+1)-dimensional subspace with the goal of showing that it is layered.
-Thirdly, we prove that our construction is a subspace in the first place.
-Fourthly, we prove that it is a layered subspace.
-*)
+
+text \<open>The proof has four parts:
+\begin{enumerate}
+\item We obtain two layered subspaces of dimension 1 and k (respectively), whose existence is guaranteed by the assumption lhj (i.e.\ the induction hypothesis). Additionally, we prove some useful facts about these.
+\item We construct a (k+1)-dimensional subspace with the goal of showing that it is layered.
+\item We prove that our construction is a subspace in the first place.
+\item We prove that it is a layered subspace.
+\end{enumerate}\<close>
+
 lemma hj_imp_lhj_step: 
   fixes   r k
   assumes "t > 0"
@@ -1046,9 +1047,8 @@ proof-
       then show "\<exists>S. layered_subspace S 1 n t s \<chi> \<and> is_line (\<lambda>s\<in>{..<t + 1}. S (SOME p. p \<in> cube 1 (t+1) \<and> p 0 = s)) n (t + 1)" using \<open>layered_subspace L 1 n t s \<chi>\<close> by auto
     qed
 
-(** SECTION 1: OBTAINING THE SUBSPACES, CONSTRUCTING THE COLORINGS, AND PROVING RELEVANT FACTS **)
-(* Recall that lhj claims the existence of a layered subspace for any colouring (of a fixed size; size of a colouring refers to the number of colours. Therefore, the colourings have to be defined first, before the layered subspaces can be obtained *)  
-(* \<chi>L is \<chi>* in the book, an s-coloring; see s_colored a couple of lines below *)
+    paragraph \<open>Part 1: Obtaining the subspaces \<open>L\<close> and \<open>S\<close>\\\<close>
+    text \<open>Recall that @{term lhj} claims the existence of a layered subspace for any colouring (of a fixed size, where the size of a colouring refers to the number of colours). Therefore, the colourings have to be defined first, before the layered subspaces can be obtained. The colouring \<open>\<chi>L\<close> here is $\chi^*$ in \cite{thebook}, an s-colouring; see the fact \<open>s_coloured\<close> a couple of lines below.\<close>
 
     define \<chi>L where "\<chi>L \<equiv> (\<lambda>x \<in> cube n (t+1). (\<lambda>y \<in> cube m (t + 1). \<chi> (join x y n m)))"
     have A: "\<forall>x \<in> cube n (t+1). \<forall>y \<in> cube m (t+1). \<chi> (join x y n m) \<in> {..<r}"
@@ -1064,9 +1064,9 @@ proof-
     also have "... = r ^ (card (cube m (t+1)))" by simp
     also have "... = r ^ ((t+1)^m)" using cube_card unfolding cube_def by simp
     finally have "card (cube m (t+1) \<rightarrow>\<^sub>E {..<r}) = r ^ ((t+1)^m)" .
-    then have s_colored: "card (cube m (t+1) \<rightarrow>\<^sub>E {..<r}) = s" unfolding s_def by simp
+    then have s_coloured: "card (cube m (t+1) \<rightarrow>\<^sub>E {..<r}) = s" unfolding s_def by simp
     have "s > 0" using assms(5) unfolding s_def by simp
-    then obtain \<phi> where \<phi>_prop: "bij_betw \<phi> (cube m (t+1) \<rightarrow>\<^sub>E {..<r}) {..<s}" using assms(5) ex_bij_betw_nat_finite_2[of "cube m (t+1) \<rightarrow>\<^sub>E {..<r}" "s"] s_colored by blast
+    then obtain \<phi> where \<phi>_prop: "bij_betw \<phi> (cube m (t+1) \<rightarrow>\<^sub>E {..<r}) {..<s}" using assms(5) ex_bij_betw_nat_finite_2[of "cube m (t+1) \<rightarrow>\<^sub>E {..<r}" "s"] s_coloured by blast
     define \<chi>L_s where "\<chi>L_s \<equiv> (\<lambda>x\<in>cube n (t+1). \<phi> (\<chi>L x))"
     have "\<chi>L_s \<in> cube n (t+1) \<rightarrow>\<^sub>E {..<s}"
     proof
@@ -1076,37 +1076,34 @@ proof-
       moreover have "\<phi> (\<chi>L x) \<in> {..<s}" using \<phi>_prop calculation(2) unfolding bij_betw_def by blast
       ultimately show "\<chi>L_s x \<in> {..<s}" by auto
     qed (auto simp: \<chi>L_s_def)
-      (* L is the layered line which we obtain from the monochromatic line guaranteed to exist in the assumption hj s t *)
+    text \<open>L is the layered line which we obtain from the monochromatic line guaranteed to exist by the assumption \<open>hj s t\<close>.\<close>
     then obtain L where L_prop: "layered_subspace L 1 n t s \<chi>L_s" using line_subspace_s by blast
     define L_line where "L_line \<equiv> (\<lambda>s\<in>{..<t+1}. L (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s))"
     have L_line_base_prop: "\<forall>s \<in> {..<t+1}. L_line s \<in> cube n (t+1)" using assms(1) dim1_subspace_is_line[of "t+1" "L" "n"] L_prop line_points_in_cube[of L_line n "t+1"] unfolding layered_subspace_def L_line_def by auto
 
-(* \<chi>S is \<chi>** in book, an r-coloring *)
+    text \<open>Here, \<open>\<chi>S\<close> is $\chi^{**}$ in \cite{thebook}, an r-colouring.\<close>
     define \<chi>S where "\<chi>S \<equiv> (\<lambda>y\<in>cube m (t+1). \<chi> (join (L_line 0) y n m))"
     have "\<chi>S \<in> (cube m (t + 1)) \<rightarrow>\<^sub>E {..<r::nat}"
     proof
     	fix x assume a: "x \<in> cube m (t+1)"
     	then have "\<chi>S x = \<chi> (join (L_line 0) x n m)" unfolding \<chi>S_def by simp
     	moreover have "L_line 0 = L (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = 0)" using L_prop assms(1) unfolding L_line_def by simp
-    	moreover have "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = 0) \<in> cube 1 (t+1)" using cube_props(4)[of "t+1"] using assms(1) by auto 
+    	moreover have "(SOME p. p\<in>cube 1 (t+1) \<and> p 0 = 0) \<in> cube 1 (t+1)" using cube_props(4)[of 0 "t+1"] using assms(1) by auto
     	moreover have "L \<in> cube 1 (t+1) \<rightarrow>\<^sub>E cube n (t+1)" using L_prop unfolding layered_subspace_def is_subspace_def by blast
     	moreover have "L (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = 0) \<in> cube n (t+1)" using calculation (3,4) unfolding cube_def by auto
     	moreover have "join (L_line 0) x n m \<in> cube (n + m) (t+1)" using join_cubes a calculation(2, 5) by auto
     	ultimately show "\<chi>S x \<in> {..<r}" using A a by fastforce
     qed (auto simp: \<chi>S_def)
-      (* S is the k-dimensional layered subspace as a consequence of the IH. Note the coloring is \<chi>S, an r-coloring *)
+    text \<open>S is the $k$-dimensional layered subspace that arises as a consequence of the induction hypothesis. Note that the colouring is \<open>\<chi>S\<close>, an r-colouring.\<close>
     then obtain S where S_prop: "layered_subspace S k m t r \<chi>S" using assms(4) m_props by blast
-        (* L_line i returns the i-th point of the line *)
+    text \<open>Remark: \<open>L_Line i\<close> returns the i-th point of the line.\<close>
 
+    paragraph \<open>Part 2: Constructing the $(k+1)$-dimensional subspace \<open>T\<close>\\\<close>
 
-(* ------------------------------------------------------------------------------------------------------------------------------ *)
+    text \<open>Below, \<open>Tset\<close> is the set as defined in \cite{thebook}. It represents the $(k+1)$-dimensional subspace. In this construction, subspaces (e.g. \<open>T\<close>) are functions whose image is a set. See the fact \<open>im_T_eq_Tset\<close> below.\<close>
 
-
-(** SECTION 2: CONSTRUCTING THE GOAL SUBSPACE T'' **)
-
-(* T is the set as defined in the book; it represents the (k+1)-dim subspace as a set. In this construction, subspaces are functions whose image is a set such as T. See below \<rightarrow> im_T''_eq_T *)
-    text\<open>04.07.2022 Having obtained our subspaces S and L, we define our new subspace very straightforwardly. Namely T = L \times S. Of course, since our way of representing tuples is through function sets C(n, t), we need an appropriate operator that mirrors \times for function sets. We call this join (and define it for elements of a FuncSet)    \<close> 
-    define imT where "imT \<equiv> {join (L_line i) s n m | i s . i \<in> {..<t+1} \<and> s \<in> S ` (cube k (t+1))}" (* x\<^sub>is *)
+    text\<open>Having obtained our subspaces \<open>S\<close> and \<open>L\<close>, we define the $(k+1)$-dimensional subspace very straightforwardly Namely, T = L \times S. Since we represent tuples by function sets, we need an appropriate operator that mirrors the Cartesian product $\times$ for these. We call this \<open>join\<close> and define it for elements of a function set.\<close> 
+    define Tset where "Tset \<equiv> {join (L_line i) s n m | i s . i \<in> {..<t+1} \<and> s \<in> S ` (cube k (t+1))}"
     define T' where "T' \<equiv> (\<lambda>x \<in> cube 1 (t+1). \<lambda>y \<in> cube k (t+1). join (L_line (x 0)) (S y) n m)"
     have T'_prop: "T' \<in> cube 1 (t+1) \<rightarrow>\<^sub>E cube k (t+1) \<rightarrow>\<^sub>E cube (n + m) (t+1)"
     proof
@@ -1133,9 +1130,9 @@ proof-
    	  ultimately show "T x \<in> cube (n + m) (t+1)" by argo
    	qed (auto simp: T_def)
 
-   	have im_T_eq_imT: "T ` cube (k+1) (t+1) = imT"
+   	have im_T_eq_Tset: "T ` cube (k+1) (t+1) = Tset"
    	proof
-   	  show "T ` cube (k + 1) (t + 1) \<subseteq> imT"
+   	  show "T ` cube (k + 1) (t + 1) \<subseteq> Tset"
    	  proof
    	    fix x assume "x \<in> T ` cube (k+1) (t+1)"
    	    then obtain y where y_prop: "y \<in> cube (k+1) (t+1) \<and> x = T y" by blast
@@ -1148,14 +1145,14 @@ proof-
    	    have "(\<lambda>i \<in> {..<1}. y i) 0 \<in> {..<t+1}" using y_prop unfolding cube_def by auto
    	    moreover have "S (\<lambda>i \<in> {..<k}. y (i + 1)) \<in> S ` (cube k (t+1))" 
    	      using \<open>(\<lambda>i\<in>{..<k}. y (i + 1)) \<in> cube k (t + 1)\<close> by blast
-   	    ultimately have "T y \<in> imT" using * unfolding imT_def by blast
-   	    then show "x \<in> imT" using y_prop by simp
+   	    ultimately have "T y \<in> Tset" using * unfolding Tset_def by blast
+   	    then show "x \<in> Tset" using y_prop by simp
    	  qed
 
-   	  show "imT \<subseteq> T ` cube (k + 1) (t + 1)" 
+   	  show "Tset \<subseteq> T ` cube (k + 1) (t + 1)" 
    	  proof
-   	    fix x assume "x \<in> imT"
-   	    then obtain i sx sxinv where isx_prop: "x = join (L_line i) sx n m \<and> i \<in> {..<t+1} \<and> sx \<in> S ` (cube k (t+1)) \<and> sxinv \<in> cube k (t+1) \<and> S sxinv = sx" unfolding imT_def by blast
+   	    fix x assume "x \<in> Tset"
+   	    then obtain i sx sxinv where isx_prop: "x = join (L_line i) sx n m \<and> i \<in> {..<t+1} \<and> sx \<in> S ` (cube k (t+1)) \<and> sxinv \<in> cube k (t+1) \<and> S sxinv = sx" unfolding Tset_def by blast
    	    let ?f1 = "(\<lambda>j \<in> {..<1::nat}. i)"
    	    let ?f2 = "sxinv"
    	    have "?f1 \<in> cube 1 (t+1)" using isx_prop unfolding cube_def by simp
@@ -1190,33 +1187,32 @@ proof-
 
 
    	qed
-   	have "imT \<subseteq> cube (n + m) (t+1)"
+   	have "Tset \<subseteq> cube (n + m) (t+1)"
    	proof
-   	  fix x assume a: "x\<in>imT"
-   	  then obtain i sx where isx_props: "x = join (L_line i) sx n m \<and> i \<in> {..<t+1} \<and> sx \<in> S ` (cube k (t+1))" unfolding imT_def by blast
+   	  fix x assume a: "x\<in>Tset"
+   	  then obtain i sx where isx_props: "x = join (L_line i) sx n m \<and> i \<in> {..<t+1} \<and> sx \<in> S ` (cube k (t+1))" unfolding Tset_def by blast
    	  then have "L_line i \<in> cube n (t+1)" using L_line_base_prop by blast
    	  moreover have "sx \<in> cube m (t+1)" using subspace_elems_embed[of "S" "k" "m" "t+1"] S_prop isx_props unfolding layered_subspace_def by blast
    	  ultimately show "x \<in> cube (n + m) (t+1)" using join_cubes[of "L_line i" "n" "t" sx m] isx_props by simp 
    	qed
-   	  (* ------------------------------------------------------------------------------------------------------------------------------ *)
 
-(** SECTION 3: PROVING THAT T IS A SUBSPACE **)
 
-(* To prove entities are subspaces, we have to provide the B and f satisfying the subspace properties. We construct BT and fT from BS, fS and BL, fL, which correspond to the k-dim subspace S and the 1-dimensional subspace (~ line) L, respectively. *)
+   	paragraph \<open>Part 3: Proving that \<open>T\<close> is a subspace\\\<close>
+
+   	text \<open>To prove something is a subspace, we have to provide the \<open>B\<close> and \<open>f\<close> satisfying the subspace properties. We construct \<open>BT\<close> and \<open>fT\<close> from \<open>BS\<close>, \<open>fS\<close> and \<open>BL\<close>, \<open>fL\<close>, which correspond to the $k$-dimensional subspace \<open>S\<close> and the $1$-dimensional subspace (i.e.\ line) \<open>L\<close>, respectively.\<close>
    	obtain BS fS where BfS_props: "disjoint_family_on BS {..k}" "\<Union>(BS ` {..k}) = {..<m}" "({} \<notin> BS ` {..<k})" " fS \<in> (BS k) \<rightarrow>\<^sub>E {..<t+1}" "S \<in> (cube k (t+1)) \<rightarrow>\<^sub>E (cube m (t+1)) " "(\<forall>y \<in> cube k (t+1). (\<forall>i \<in> BS k. S y i = fS i) \<and> (\<forall>j<k. \<forall>i \<in> BS j. (S y) i = y j))" using S_prop unfolding layered_subspace_def is_subspace_def by auto
 
    	obtain BL fL where BfL_props: "disjoint_family_on BL {..1}" "\<Union>(BL ` {..1}) = {..<n}"  "({} \<notin> BL ` {..<1})" "fL \<in> (BL 1) \<rightarrow>\<^sub>E {..<t+1}" "L \<in> (cube 1 (t+1)) \<rightarrow>\<^sub>E (cube n (t+1))" "(\<forall>y \<in> cube 1 (t+1). (\<forall>i \<in> BL 1. L y i = fL i) \<and> (\<forall>j<1. \<forall>i \<in> BL j. (L y) i = y j))" using L_prop unfolding layered_subspace_def is_subspace_def by auto
 
-   	define Bstat where "Bstat \<equiv> shiftset n (BS k) \<union> BL 1"
-   	define Bvar where "Bvar \<equiv> (\<lambda>i::nat. (if i = 0 then BL 0 else shiftset n (BS (i - 1))))"
+   	define Bstat where "Bstat \<equiv> set_incr n (BS k) \<union> BL 1"
+   	define Bvar where "Bvar \<equiv> (\<lambda>i::nat. (if i = 0 then BL 0 else set_incr n (BS (i - 1))))"
    	define BT where "BT \<equiv> (\<lambda>i \<in> {..<k+1}. Bvar i)((k+1):=Bstat)"
-   	define fT where "fT \<equiv> (\<lambda>x. (if x \<in> BL 1 then fL x else (if x \<in> shiftset n (BS k) then fS (x - n) else undefined)))"
+   	define fT where "fT \<equiv> (\<lambda>x. (if x \<in> BL 1 then fL x else (if x \<in> set_incr n (BS k) then fS (x - n) else undefined)))"
 
-   	text \<open>\<close>
-   	have fact1: "shiftset n (BS k) \<inter> BL 1 = {}"  using BfL_props BfS_props unfolding shiftset_def by auto
-   	have fact2: "BL 0 \<inter> (\<Union>i\<in>{..<k}. shiftset n (BS i)) = {}" using BfL_props BfS_props unfolding shiftset_def by auto
-   	have fact3: "\<forall>i \<in> {..<k}. BL 0 \<inter> shiftset n (BS i) = {}" using BfL_props BfS_props unfolding shiftset_def by auto
-   	have fact4: "\<forall>i \<in> {..<k+1}. \<forall>j \<in> {..<k+1}. i \<noteq> j \<longrightarrow> shiftset n (BS i) \<inter> shiftset n (BS j) = {}" using shiftset_disjoint_family[of BS k] BfS_props unfolding disjoint_family_on_def by simp 
+   	have fact1: "set_incr n (BS k) \<inter> BL 1 = {}"  using BfL_props BfS_props unfolding set_incr_def by auto
+   	have fact2: "BL 0 \<inter> (\<Union>i\<in>{..<k}. set_incr n (BS i)) = {}" using BfL_props BfS_props unfolding set_incr_def by auto
+   	have fact3: "\<forall>i \<in> {..<k}. BL 0 \<inter> set_incr n (BS i) = {}" using BfL_props BfS_props unfolding set_incr_def by auto
+   	have fact4: "\<forall>i \<in> {..<k+1}. \<forall>j \<in> {..<k+1}. i \<noteq> j \<longrightarrow> set_incr n (BS i) \<inter> set_incr n (BS j) = {}" using set_incr_disjoint_family[of BS k] BfS_props unfolding disjoint_family_on_def by simp 
    	have fact5: "\<forall>i \<in> {..<k+1}. Bvar i \<inter> Bstat = {}"
    	proof
    	  fix i assume a: "i \<in> {..<k+1}"
@@ -1225,22 +1221,22 @@ proof-
    	    case 0
    	    then have "Bvar i = BL 0" unfolding Bvar_def by simp
    	    moreover have "BL 0 \<inter> BL 1 = {}" using BfL_props unfolding disjoint_family_on_def by simp
-   	    moreover have "shiftset n (BS k) \<inter> BL 0 = {}" using BfL_props BfS_props unfolding shiftset_def by auto
+   	    moreover have "set_incr n (BS k) \<inter> BL 0 = {}" using BfL_props BfS_props unfolding set_incr_def by auto
    	    ultimately show ?thesis unfolding Bstat_def by blast
    	  next
    	    case (Suc nat)
-   	    then have "Bvar i = shiftset n (BS nat)" unfolding Bvar_def by simp
-   	    moreover have "shiftset n (BS nat) \<inter> BL 1 = {}" using BfS_props BfL_props a Suc unfolding shiftset_def by auto
-   	    moreover have "shiftset n (BS nat) \<inter> shiftset n (BS k) = {}" using a Suc fact4 by simp
+   	    then have "Bvar i = set_incr n (BS nat)" unfolding Bvar_def by simp
+   	    moreover have "set_incr n (BS nat) \<inter> BL 1 = {}" using BfS_props BfL_props a Suc unfolding set_incr_def by auto
+   	    moreover have "set_incr n (BS nat) \<inter> set_incr n (BS k) = {}" using a Suc fact4 by simp
    	    ultimately show ?thesis unfolding Bstat_def by blast
    	  qed
    	qed
 
-   	text \<open>The facts F1, ..., F5 are the disjuncts in the subspace definition.\<close>
+   	text \<open>The facts \<open>F1\<close>, ..., \<open>F5\<close> are the disjuncts in the subspace definition.\<close>
     have "Bvar ` {..<k+1} = BL ` {..<1} \<union> Bvar ` {1..<k+1}" unfolding Bvar_def by force
-    also have " ... = BL ` {..<1} \<union> {shiftset n (BS i) | i . i \<in> {..<k}} " unfolding Bvar_def by fastforce  
+    also have " ... = BL ` {..<1} \<union> {set_incr n (BS i) | i . i \<in> {..<k}} " unfolding Bvar_def by fastforce  
     moreover have "{} \<notin> BL ` {..<1}" using BfL_props by auto
-    moreover have "{} \<notin> {shiftset n (BS i) | i . i \<in> {..<k}}" using BfS_props(2, 3) shiftset_def by fastforce
+    moreover have "{} \<notin> {set_incr n (BS i) | i . i \<in> {..<k}}" using BfS_props(2, 3) set_incr_def by fastforce
     ultimately have "{} \<notin> Bvar ` {..<k+1}" by simp
     then have F1: "{} \<notin> BT ` {..<k+1}" unfolding BT_def by simp
     moreover
@@ -1294,23 +1290,23 @@ proof-
         proof (cases)
           case 1
           then have "x \<in> Bstat" using i_prop unfolding BT_def by simp
-          then have "x \<in> BL 1 \<or> x \<in> shiftset n (BS k)" unfolding Bstat_def by blast
-          then have "x \<in> {..<n} \<or> x \<in> {n..<n+m}" using BfL_props BfS_props(2) shiftset_image[of BS k m n] by blast
+          then have "x \<in> BL 1 \<or> x \<in> set_incr n (BS k)" unfolding Bstat_def by blast
+          then have "x \<in> {..<n} \<or> x \<in> {n..<n+m}" using BfL_props BfS_props(2) set_incr_image[of BS k m n] by blast
           then show ?thesis by auto
         next
           case 2
           then have "x \<in> Bvar i" using i_prop unfolding BT_def by simp
-          then have "x \<in> BL 0 \<or> x \<in> shiftset n (BS (i - 1))" unfolding Bvar_def by presburger
+          then have "x \<in> BL 0 \<or> x \<in> set_incr n (BS (i - 1))" unfolding Bvar_def by presburger
           then show ?thesis
           proof (elim disjE)
             assume "x \<in> BL 0"
             then have "x \<in> {..<n}" using BfL_props by auto
             then show "x \<in> {..<n + m}" by simp
           next
-            assume a: "x \<in> shiftset n (BS (i - 1))"
+            assume a: "x \<in> set_incr n (BS (i - 1))"
             then have "i - 1 \<le> k" 
               by (meson atMost_iff i_prop le_diff_conv) 
-            then have "shiftset n (BS (i - 1)) \<subseteq> {n..<n+m}" using shiftset_image[of BS k m n] BfS_props by auto
+            then have "set_incr n (BS (i - 1)) \<subseteq> {n..<n+m}" using set_incr_image[of BS k m n] BfS_props by auto
             then show "x \<in> {..<n+m}" using a by auto
           qed
         qed
@@ -1340,8 +1336,8 @@ proof-
           qed
         next
           case 2
-          then have "x \<in> (\<Union>i\<le>k. shiftset n (BS i))" using shiftset_image[of BS k m n] BfS_props by simp
-          then obtain i where i_prop: "i \<le> k \<and> x \<in> shiftset n (BS i)" by blast
+          then have "x \<in> (\<Union>i\<le>k. set_incr n (BS i))" using set_incr_image[of BS k m n] BfS_props by simp
+          then obtain i where i_prop: "i \<le> k \<and> x \<in> set_incr n (BS i)" by blast
           then consider "i = k" | "i < k" by fastforce
           then show ?thesis
           proof (cases)
@@ -1363,16 +1359,16 @@ proof-
     proof
       fix x assume "x \<in> BT (k+1)"
       then have "x \<in> Bstat" unfolding BT_def by simp
-      then have "x \<in> BL 1 \<or> x \<in> shiftset n (BS k)" unfolding Bstat_def by auto
+      then have "x \<in> BL 1 \<or> x \<in> set_incr n (BS k)" unfolding Bstat_def by auto
       then show "fT x \<in> {..<t + 1}"
       proof (elim disjE)
         assume "x \<in> BL 1"
         then have "fT x = fL x" unfolding fT_def by simp
         then show "fT x \<in> {..<t+1}" using BfL_props \<open>x \<in> BL 1\<close> by auto
       next
-        assume a: "x \<in> shiftset n (BS k)"
+        assume a: "x \<in> set_incr n (BS k)"
         then have "fT x = fS (x - n)" using fact1 unfolding fT_def by auto
-        moreover have "x - n \<in> BS k" using a unfolding shiftset_def by auto
+        moreover have "x - n \<in> BS k" using a unfolding set_incr_def by auto
         ultimately show "fT x \<in> {..<t+1}" using BfS_props by auto
       qed
     qed(auto simp: BT_def Bstat_def fT_def)
@@ -1380,11 +1376,11 @@ proof-
     proof(intro conjI allI impI ballI)
       fix i assume "i \<in> BT (k + 1)"
       then have "i \<in> Bstat" unfolding BT_def by simp
-      then consider "i \<in> shiftset n (BS k)" |  "i \<in> BL 1" unfolding Bstat_def by blast
+      then consider "i \<in> set_incr n (BS k)" |  "i \<in> BL 1" unfolding Bstat_def by blast
       then show "T y i = fT i"
       proof (cases)
         case 1
-        then have "\<exists>s<m. i = n + s" unfolding shiftset_def using BfS_props(2) by auto
+        then have "\<exists>s<m. i = n + s" unfolding set_incr_def using BfS_props(2) by auto
         then obtain s where s_prop: "s < m \<and> i = n + s" by blast
         then have *: " i \<in> {n..<n+m}" by simp
         have "i \<notin> BL 1" using 1 fact1 by auto
@@ -1392,7 +1388,7 @@ proof-
         then have **: "fT i = fS s" using s_prop by simp
 
         have XX: "(\<lambda>z \<in> {..<k}. y (z + 1)) \<in> cube k (t+1)" using split_cube that by simp
-        have XY: "s \<in> BS k" using  s_prop  1 unfolding shiftset_def by auto
+        have XY: "s \<in> BS k" using  s_prop  1 unfolding set_incr_def by auto
 
         from that have "T y i = (T' (\<lambda>z \<in> {..<1}. y z) (\<lambda>z \<in> {..<k}. y (z + 1))) i" unfolding T_def by auto
         also have "... = (join (L_line ((\<lambda>z \<in> {..<1}. y z) 0)) (S (\<lambda>z \<in> {..<k}. y (z + 1))) n m) i" using split_cube that unfolding T'_def by simp
@@ -1459,13 +1455,13 @@ proof-
         finally show ?thesis .
       next
         case 2
-        then have "i \<in> shiftset n (BS (j - 1))" using i_prop unfolding Bvar_def by simp
-        then have "\<exists>s<m. n + s = i" using BfS_props(2) \<open>j < k + 1\<close> unfolding shiftset_def by force 
+        then have "i \<in> set_incr n (BS (j - 1))" using i_prop unfolding Bvar_def by simp
+        then have "\<exists>s<m. n + s = i" using BfS_props(2) \<open>j < k + 1\<close> unfolding set_incr_def by force 
         then obtain s where s_prop: "s < m" "i = s + n" by auto
         then have *: " i \<in> {n..<n+m}" by simp
 
         have XX: "(\<lambda>z \<in> {..<k}. y (z + 1)) \<in> cube k (t+1)" using split_cube that by simp
-        have XY: "s \<in> BS (j - 1)" using s_prop 2 \<open>i \<in> shiftset n (BS (j - 1))\<close> unfolding shiftset_def by force
+        have XY: "s \<in> BS (j - 1)" using s_prop 2 \<open>i \<in> set_incr n (BS (j - 1))\<close> unfolding set_incr_def by force
 
         from that have "T y i = (T' (\<lambda>z \<in> {..<1}. y z) (\<lambda>z \<in> {..<k}. y (z + 1))) i" unfolding T_def by auto
         also have "... = (join (L_line ((\<lambda>z \<in> {..<1}. y z) 0)) (S (\<lambda>z \<in> {..<k}. y (z + 1))) n m) i" using split_cube that unfolding T'_def by simp
@@ -1479,8 +1475,8 @@ proof-
 
     ultimately have subspace_T: "is_subspace T (k+1) (n+m) (t+1)" unfolding is_subspace_def using T_prop by metis
 
-    text \<open>Part 4: Proving T is layered.\<close>
-    text \<open>This redefinition of the classes makes proving the layered property easier\<close>
+    paragraph \<open>Part 4: Proving \<open>T\<close> is layered\\\<close>
+    text \<open>The following redefinition of the classes makes proving the layered property easier.\<close>
     define T_class where "T_class \<equiv> (\<lambda>j\<in>{..k}. {join (L_line i) s n m | i s . i \<in> {..<t} \<and> s \<in> S ` (classes k t j)})(k+1:= {join (L_line t) (SOME s. s \<in> S ` (cube m (t+1))) n m})"
     have classprop: "T_class j = T ` classes (k + 1) t j" if j_prop: "j \<le> k" for j
     proof
@@ -1569,7 +1565,8 @@ proof-
         finally show "x \<in> T_class j" using y_prop by simp
       qed
     qed
-      (* The core case i \<le> k. The case i = k+1 is trivial since k+1 has only one point. *)
+
+    text \<open>The core case $i \leq k$. The case $i = k+1$ is trivial since $k+1$ has only one point.\<close>
     have "\<chi> x = \<chi> y \<and> \<chi> x < r" if a: "i \<le> k" "x \<in> T ` classes (k+1) t i" "y \<in> T ` classes (k+1) t i" for i x y
     proof-
       from a have *: "T ` classes (k+1) t i = T_class i" by (simp add: classprop)
@@ -1695,9 +1692,10 @@ proof (induction k arbitrary: r rule: less_induct)
 qed
 
 
+subsection \<open>Theorem 5\<close>
 
-text \<open>We provide a way to construct a monochromatic line in C(n, t + 1) from a k-dimensional k-coloured layered subspace S in C(n, t + 1).
-The idea is to rely on the fact that there are k+1 classes in S, but only k colours. It thus follows by the Pigeonhole Principle that two classes must share the same colour. The way classes are defined allows for a straightforward construction of a line that contains points in both classes. Thus we have our monochromatic line.\<close>
+text \<open>We provide a way to construct a monochromatic line in $C^n_{t + 1}$ from a $k$-dimensional $k$-coloured layered subspace \<open>S\<close> in $C^n_{t + 1}$.
+The idea is to rely on the fact that there are $k+1$ classes in \<open>S\<close>, but only $k$ colours. It thus follows from the Pigeonhole Principle that two classes must share the same colour. The way classes are defined allows for a straightforward construction of a line that contains points in both classes. Thus we have our monochromatic line.\<close>
 theorem layered_subspace_to_mono_line: 
   assumes "layered_subspace S k n t k \<chi>" 
     and "t > 0"  
@@ -1836,7 +1834,7 @@ proof-
   ultimately have Z1: "is_line y n (t+1)" unfolding is_line_def by blast
   moreover 
   {
-    have k_color: "\<chi> e < k" if "e \<in> y ` {..<t+1}" for e using \<open>y \<in> {..<t+1} \<rightarrow>\<^sub>E cube n (t + 1)\<close> \<open>\<chi> \<in> cube n (t + 1) \<rightarrow>\<^sub>E {..<k}\<close> that by auto
+    have k_colour: "\<chi> e < k" if "e \<in> y ` {..<t+1}" for e using \<open>y \<in> {..<t+1} \<rightarrow>\<^sub>E cube n (t + 1)\<close> \<open>\<chi> \<in> cube n (t + 1) \<rightarrow>\<^sub>E {..<k}\<close> that by auto
     have "\<chi> e1 = \<chi> e2 \<and> \<chi> e1 < k" if "e1 \<in> y ` {..<t+1}" "e2 \<in> y ` {..<t+1}" for e1 e2 
     proof  
       from that obtain i1 i2 where i_props: "i1 < t + 1" "i2 < t + 1" "e1 = y i1" "e2 = y i2" by blast 
@@ -1918,7 +1916,7 @@ proof-
         then show ?case by presburger
       qed
       then show "\<chi> e1 = \<chi> e2" using i_props(3,4) by blast
-    qed (use that(1) k_color in blast)
+    qed (use that(1) k_colour in blast)
     then have Z2: "\<exists>c < k. \<forall>e \<in> y ` {..<t+1}. \<chi> e = c"
       by (meson image_eqI lessThan_iff less_add_one)
   }
@@ -1926,15 +1924,16 @@ proof-
 
 qed
 
+subsection \<open>Corollary 6\<close>
 corollary lhj_imp_hj: 
   assumes "(\<And>r k. lhj r t k)" 
     and "t>0" 
   shows "(hj r (t+1))"
   using assms(1)[of r r] assms(2) unfolding lhj_def hj_def using layered_subspace_to_mono_line[of _ r _ t] by metis
 
+subsection \<open>Main result\<close>
 
-
-
+subsubsection \<open>Edge cases and auxiliary lemmas\<close>
 lemma single_point_line: 
   assumes "N > 0" 
   shows "is_line (\<lambda>s\<in>{..<1}. \<lambda>a\<in>{..<N}. 0) N 1"
@@ -1968,6 +1967,7 @@ proof-
   then show "\<exists>N>0. \<forall>N'\<ge>N. \<forall>\<chi>. \<chi> \<in> cube N' 1 \<rightarrow>\<^sub>E {..<r} \<longrightarrow> (\<exists>L c. c < r \<and> is_line L N' 1 \<and> (\<forall>y\<in>L ` {..<1}. \<chi> y = c))" by blast
 qed
 
+subsubsection \<open>Main theorem\<close>
 text \<open>We state the main result \<open>hj r t\<close>. The explanation for the choice of assumption is offered subsequently.\<close>
 theorem hales_jewett:
   assumes "\<not>(r = 0 \<and> t = 0)" 
@@ -1980,6 +1980,6 @@ next
   case (Suc t)
   then show ?case using hj_t_1[of r] hj_imp_lhj[of t] lhj_imp_hj[of t r] by auto
 qed
-text \<open>We offer a justification for having excluded the  special case $r = t = 0$ from the statement of the main theorem @thm{hales_jewett}. The exclusion is a consequence of the fact that colourings are defined as members of the function set \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>, which for $r = t = 0$ means there's a dummy colouring \<open>\<lambda>_. undefined\<close>, although \<open>cube n 0 = {}\<close> for $n > 0$. Hence, in this case, no line exists at all (let alone a monochromatic one). This means \<open>hj 0 0 = False\<close>, but only because of the quirky behaviour of the FuncSet \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>. This could have been circumvented by letting colourings $\chi$ be arbitrary functions with only the constraint \<open>\<chi> ` cube n t \<subseteq> {..<r}\<close>. We avoided this to have consistency with the cube's definition, for which FuncSets were crucial because the proof makes use of the cardinality of the cube---the constraint \<open>x ` {..<n} \<subseteq> {..<t}\<close> would not have sufficed there, as there are infinitely many functions over the naturals satisfying it.\<close>
+text \<open>We offer a justification for having excluded the special case $r = t = 0$ from the statement of the main theorem @{thm hales_jewett}. The exclusion is a consequence of the fact that colourings are defined as members of the function set \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>, which for $r = t = 0$ means there's a dummy colouring \<open>\<lambda>_. undefined\<close>, although \<open>cube n 0 = {}\<close> for $n > 0$. Hence, in this case, no line exists at all (let alone a monochromatic one). This means \<open>hj 0 0 = False\<close>, but only because of the quirky behaviour of the FuncSet \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>. This could have been circumvented by letting colourings $\chi$ be arbitrary functions with only the constraint \<open>\<chi> ` cube n t \<subseteq> {..<r}\<close>. We avoided this in order to have consistency with the cube's definition, for which FuncSets were crucial because the proof makes use of the cardinality of the cube---the constraint \<open>x ` {..<n} \<subseteq> {..<t}\<close> would not have sufficed there, as there are infinitely many functions over the naturals satisfying it.\<close>
 
 end
