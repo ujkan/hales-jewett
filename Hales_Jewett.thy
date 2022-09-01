@@ -5,9 +5,8 @@ begin
 section \<open>Preliminaries\<close>
 
 text \<open>The Hales--Jewett Theorem is at its core a statement about sets of tuples called the $n$-dimensional cube over $t$ elements (denoted by $C^n_t$); i.e.\ the set $\{0,\ldots,t - 1\}^n$, where $\{0,\ldots,t - 1\}$ is called the base. 
-We use functions $f : \{0,\ldots,n - 1\} \rightarrow \{0,\ldots,t - 1\}$ instead of tuples because they're easier to
- deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$.
-Furthermore, $r$-colourings are denoted by mappings from the function space to the set $\{0,\ldots, r-1\}$.\<close>
+We represent tuples by functions $f : \{0,\ldots,n - 1\} \rightarrow \{0,\ldots,t - 1\}$ because they're easier to deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$.
+Furthermore, $r$-colourings of the cube are represented by mappings from the function space to the set $\{0,\ldots, r-1\}$.\<close>
 
 subsection \<open>The $n$-dimensional cube over $t$ elements\<close>
 
@@ -46,7 +45,7 @@ text \<open>A simplifying definition for the 0-dimensional cube.\<close>
 lemma cube0_alt_def: "cube 0 t = {\<lambda>x. undefined}"
   unfolding cube_def by simp
 
-text \<open>The cardinality of the \<open>n\<close>-dimensional over \<open>t\<close> elements is simply a consequence of the overarching definition of the cardinality of function spaces (over finite sets)\<close>
+text \<open>The cardinality of the \<open>n\<close>-dimensional over \<open>t\<close> elements is simply a consequence of the overarching definition of the cardinality of function spaces (over finite sets).\<close>
 lemma cube_card: "card ({..<n::nat} \<rightarrow>\<^sub>E {..<t::nat}) = t ^ n"
   by (simp add: card_PiE)
 
@@ -125,7 +124,7 @@ lemma set_incr_image:
   shows "(\<Union>i\<in>{..k}. set_incr m (B i)) = {m..<m+n}"
   using assms by (simp add: set_incr_altdef add.commute flip: image_UN atLeast0LessThan)
 
-text \<open>Each tuple of dimension $k+1$ can be split into a tuple of dimension $1$---the first entry---and a tuple of dimension $k$---the remaining entries.\<close>
+text \<open>Each tuple of dimension $k+1$ can be split into a tuple of dimension $1$ (the first entry) and a tuple of dimension $k$ (the remaining entries).\<close>
 lemma split_cube: 
   assumes "x \<in> cube (k+1) t" 
   shows "(\<lambda>y \<in> {..<1}. x y) \<in> cube 1 t" 
@@ -145,7 +144,7 @@ $t$:& \<^typ>\<open>nat\<close>& the size of the cube's base
 definition is_subspace
   where "is_subspace S k n t \<equiv> (\<exists>B f. disjoint_family_on B {..k} \<and> \<Union>(B ` {..k}) = {..<n} \<and> ({} \<notin> B ` {..<k}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> S \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> (\<forall>y \<in> cube k t. (\<forall>i \<in> B k. S y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (S y) i = y j)))"
 
-text \<open>A $k$-dimensional subspace can be thought of as an embedding of the $k$-dimensional cube $C^k_t$ into $C^n_t$, akin to how a $k$-dimensional vector subspace of $\mathbf{R}^n$ may be thought of as an embedding of $\mathbf{R}^k$ into $\mathbf{R}^n$.\<close> 
+text \<open>A $k$-dimensional subspace of $C^n_t$ can be thought of as an embedding of the $C^k_t$ into $C^n_t$, akin to how a $k$-dimensional vector subspace of $\mathbf{R}^n$ may be thought of as an embedding of $\mathbf{R}^k$ into $\mathbf{R}^n$.\<close> 
 lemma subspace_inj_on_cube: 
   assumes "is_subspace S k n t" 
   shows "inj_on S (cube k t)"
@@ -199,7 +198,6 @@ lemma classes_subset_cube: "classes n t i \<subseteq> cube n (t+1)" unfolding cl
 definition layered_subspace
   where "layered_subspace S k n t r \<chi> \<equiv> (is_subspace S k n (t + 1)  \<and> (\<forall>i \<in> {..k}. \<exists>c<r. \<forall>x \<in> classes k t i. \<chi> (S x) = c)) \<and> \<chi> \<in> cube n (t + 1) \<rightarrow>\<^sub>E {..<r}"
 
-
 lemma layered_eq_classes: 
   assumes "layered_subspace S k n t r \<chi>" 
   shows "\<forall>i \<in> {..k}. \<forall>x \<in> classes k t i. \<forall>y \<in> classes k t i. \<chi> (S x) = \<chi> (S y)" 
@@ -228,8 +226,6 @@ proof-
   ultimately have "layered_subspace S 0 n t r \<chi>" using S_prop assms unfolding layered_subspace_def by blast
   then show "\<exists>S. layered_subspace S (0::nat) n t r \<chi>" by auto
 qed
-
-text \<open>Proving they are equivalence classes.\<close>
 
 lemma disjoint_family_onI [intro]:
   assumes "\<And>m n. m \<in> S \<Longrightarrow> n \<in> S \<Longrightarrow> m \<noteq> n \<Longrightarrow> A m \<inter> A n = {}"
@@ -463,7 +459,7 @@ $k$:& \<^typ>\<open>nat\<close>& the dimension of the subspace
 definition lhj
   where "lhj r t k \<equiv> (\<exists>N > 0. \<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k N' t r \<chi>))"
 
-text \<open>We state some useful facts about 1-dimensional subspaces.\<close>
+text \<open>We state some useful facts about $1$-dimensional subspaces.\<close>
 lemma dim1_subspace_elims: 
   assumes "disjoint_family_on B {..1::nat}" and "\<Union>(B ` {..1::nat}) = {..<n}" and "({} \<notin> B ` {..<1::nat})" and  "f \<in> (B 1) \<rightarrow>\<^sub>E {..<t}" and "S \<in> (cube 1 t) \<rightarrow>\<^sub>E (cube n t)" and "(\<forall>y \<in> cube 1 t. (\<forall>i \<in> B 1. S y i = f i) \<and> (\<forall>j<1. \<forall>i \<in> B j. (S y) i = y j))"
   shows "B 0 \<union> B 1 = {..<n}"
@@ -1005,9 +1001,6 @@ proof-
 qed
 
 subsubsection \<open>Induction step of theorem 4\<close>
-
-
-
 text \<open>The proof has four parts:
 \begin{enumerate}
 \item We obtain two layered subspaces of dimension 1 and k (respectively), whose existence is guaranteed by the assumption \<^const>\<open>lhj\<close> (i.e.\ the induction hypothesis). Additionally, we prove some useful facts about these.
@@ -1692,7 +1685,7 @@ qed
 subsection \<open>Theorem 5\<close>
 
 text \<open>We provide a way to construct a monochromatic line in $C^n_{t + 1}$ from a $k$-dimensional $k$-coloured layered subspace \<open>S\<close> in $C^n_{t + 1}$.
-The idea is to rely on the fact that there are $k+1$ classes in \<open>S\<close>, but only $k$ colours. It thus follows from the Pigeonhole Principle that two classes must share the same colour. The way classes are defined allows for a straightforward construction of a line that contains points in both classes. Thus we have our monochromatic line.\<close>
+The idea is to rely on the fact that there are $k+1$ classes in \<open>S\<close>, but only $k$ colours. It thus follows from the Pigeonhole Principle that two classes must share the same colour. The way classes are defined allows for a straightforward construction of a line with points only from those two classes. Thus we have our monochromatic line.\<close>
 theorem layered_subspace_to_mono_line: 
   assumes "layered_subspace S k n t k \<chi>" 
     and "t > 0"  
@@ -1977,6 +1970,6 @@ next
   case (Suc t)
   then show ?case using hj_t_1[of r] hj_imp_lhj[of t] lhj_imp_hj[of t r] by auto
 qed
-text \<open>We offer a justification for having excluded the special case $r = t = 0$ from the statement of the main theorem @{thm hales_jewett}. The exclusion is a consequence of the fact that colourings are defined as members of the function set \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>, which for $r = t = 0$ means there's a dummy colouring \<open>\<lambda>_. undefined\<close>, even though \<open>cube n 0 = {}\<close> for $n > 0$. Hence, in this case, no line exists at all (let alone one monochromatic under the aforementioned colouring). This means \<open>hj 0 0 \<Longrightarrow> False\<close>, but only because of the quirky behaviour of the FuncSet \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>. This could have been circumvented by letting colourings $\chi$ be arbitrary functions with only the constraint \<open>\<chi> ` cube n t \<subseteq> {..<r}\<close>. We avoided this in order to have consistency with the cube's definition, for which FuncSets were crucial because the proof makes use of the cardinality of the cube---the constraint \<open>x ` {..<n} \<subseteq> {..<t}\<close> for elements \<open>x\<close> of $C^n_t$ would not have sufficed there, as there are infinitely many functions over the naturals satisfying it.\<close>
+text \<open>We offer a justification for having excluded the special case $r = t = 0$ from the statement of the main theorem \<open>hales_jewett\<close>. The exclusion is a consequence of the fact that colourings are defined as members of the function set \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>, which for $r = t = 0$ means there's a dummy colouring \<^term>\<open>\<lambda>x. undefined\<close>, even though \<^prop>\<open>cube n 0 = {}\<close> for $n > 0$. Hence, in this case, no line exists at all (let alone one monochromatic under the aforementioned colouring). This means \<^prop>\<open>hj 0 0 \<Longrightarrow> False\<close>---but only because of the quirky behaviour of the FuncSet \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>. This could have been circumvented by letting colourings $\chi$ be arbitrary functions constraint only by \<^prop>\<open>\<chi> ` cube n t \<subseteq> {..<r}\<close>. We avoided this in order to have consistency with the cube's definition, for which FuncSets were crucial because the proof heavily relies on arguments about the cardinality of the cube. he constraint \<^prop>\<open>x ` {..<n} \<subseteq> {..<t}\<close> for elements \<open>x\<close> of $C^n_t$ would not have sufficed there, as there are infinitely many functions over the naturals satisfying it.\<close>
 
 end
