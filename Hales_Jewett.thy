@@ -1008,7 +1008,7 @@ subsubsection \<open>Induction step of theorem 4\<close>
 text \<open>The proof has four parts:
 \begin{enumerate}
 \item We obtain two layered subspaces of dimension 1 and k (respectively), whose existence is guaranteed by the assumption lhj (i.e.\ the induction hypothesis). Additionally, we prove some useful facts about these.
-\item We construct a (k+1)-dimensional subspace with the goal of showing that it is layered.
+\item We construct a \<open>k+1\<close>-dimensional subspace with the goal of showing that it is layered.
 \item We prove that our construction is a subspace in the first place.
 \item We prove that it is a layered subspace.
 \end{enumerate}\<close>
@@ -1962,7 +1962,7 @@ proof-
 qed
 
 subsubsection \<open>Main theorem\<close>
-text \<open>We state the main result \<open>hj r t\<close>. The explanation for the choice of assumption is offered subsequently.\<close>
+text \<open>We state the main result \<^prop>\<open>hj r t\<close>. The explanation for the choice of assumption is offered subsequently.\<close>
 theorem hales_jewett:
   assumes "\<not>(r = 0 \<and> t = 0)" 
   shows "hj r t"
