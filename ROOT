@@ -1,5 +1,6 @@
-session bthesis = HOL +
-    options [document = pdf, document_output = "generated"]
+chapter AFP
+session "Hales_Jewett" (AFP) = HOL +
+    options [document = pdf, document_output = "generated", timeout = 600]
     sessions
       "HOL-Library"
     theories

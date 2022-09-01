@@ -4,7 +4,7 @@ begin
 
 section \<open>Preliminaries\<close>
 
-text \<open>The Hales--Jewett Theorem is at its core a statement about sets of tuples called the $n$-dimensional cube over $t$ elements; i.e.\ the set $\{0,\ldots,t - 1\}^n$, where $\{0,\ldots,t - 1\}$ is called the base. 
+text \<open>The Hales--Jewett Theorem is at its core a statement about sets of tuples called the $n$-dimensional cube over $t$ elements (denoted by $C^n_t$); i.e.\ the set $\{0,\ldots,t - 1\}^n$, where $\{0,\ldots,t - 1\}$ is called the base. 
 We use functions $f : \{0,\ldots,n - 1\} \rightarrow \{0,\ldots,t - 1\}$ instead of tuples because they're easier to
  deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$.
 Furthermore, $r$-colourings are denoted by mappings from the function space to the set $\{0,\ldots, r-1\}$.\<close>
@@ -55,12 +55,12 @@ lemma cube1_alt_def: "cube n 1 = {\<lambda>x\<in>{..<n}. 0}" unfolding cube_def 
 
 subsection \<open>Lines\<close>
 
-text \<open>The property of being a line in the $C^n_t$ is defined in the following using the variables:
+text \<open>The property of being a line in $C^n_t$ is defined in the following using the variables:
 
 \begin{tabular}{llp{8cm}}
-$L$:& \<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& line\\
-$n$:& \<open>nat\<close>& dimension of cube\\
-$t$:&  \<open>nat\<close>& the size of the cube's base\\
+$L$:& \<^typ>\<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& line\\
+$n$:& \<^typ>\<open>nat\<close>& dimension of cube\\
+$t$:& \<^typ>\<open>nat\<close>& the size of the cube's base\\
 \end{tabular}\<close>
 definition is_line :: "(nat \<Rightarrow> (nat \<Rightarrow> nat)) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool"
   where "is_line L n t \<equiv> (L \<in> {..<t} \<rightarrow>\<^sub>E cube n t \<and> ((\<forall>j<n. (\<forall>x<t. \<forall>y<t. L x j =  L y j) \<or> (\<forall>s<t. L s j = s)) \<and> (\<exists>j < n. (\<forall>s < t. L s j = s))))"
@@ -145,7 +145,7 @@ $t$:& \<^typ>\<open>nat\<close>& the size of the cube's base
 definition is_subspace
   where "is_subspace S k n t \<equiv> (\<exists>B f. disjoint_family_on B {..k} \<and> \<Union>(B ` {..k}) = {..<n} \<and> ({} \<notin> B ` {..<k}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> S \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> (\<forall>y \<in> cube k t. (\<forall>i \<in> B k. S y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (S y) i = y j)))"
 
-text \<open>A subspace can be thought of as an embedding of the $k$-dimensional cube $C^k_t$ into $C^n_t$, akin to how a $k$-dimensional vector subspace of $\mathbf{R}^n$ may be thought of as an embedding of $\mathbf{R}^k$ into $\mathbf{R}^n$.\<close> 
+text \<open>A $k$-dimensional subspace can be thought of as an embedding of the $k$-dimensional cube $C^k_t$ into $C^n_t$, akin to how a $k$-dimensional vector subspace of $\mathbf{R}^n$ may be thought of as an embedding of $\mathbf{R}^k$ into $\mathbf{R}^n$.\<close> 
 lemma subspace_inj_on_cube: 
   assumes "is_subspace S k n t" 
   shows "inj_on S (cube k t)"
@@ -447,7 +447,7 @@ lemma line_is_dim1_subspace:
 text \<open>The key property of the existence of a minimal dimension $N$, such that for any $r$-colouring in $C^{N'}_t$ (for $N' \geq N$) there exists a monochromatic line is defined in the following using the variables:
 
 \begin{tabular}{llp{8cm}}
-$r$:& \<^typ>\<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the number of colours\\
+$r$:& \<^typ>\<open>nat\<close>& the number of colours\\
 $t$:& \<^typ>\<open>nat\<close>& the size of of the base
 \end{tabular}\<close>
 definition hj 
@@ -456,7 +456,7 @@ definition hj
 text \<open>The key property of the existence of a minimal dimension $N$, such that for any $r$-colouring in $C^{N'}_t$ (for $N' \geq N$) there exists a layered subspace of dimension $k$ is defined in the following using the variables:
 
 \begin{tabular}{llp{8cm}}
-$r$:& \<^typ>\<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the number of colours\\
+$r$:& \<^typ>\<open>nat\<close>& the number of colours\\
 $t$:& \<^typ>\<open>nat\<close>& the size of of the base\\
 $k$:& \<^typ>\<open>nat\<close>& the dimension of the subspace
 \end{tabular}\<close>
@@ -495,7 +495,7 @@ proof -
   show 4: "(SOME p. p \<in> cube 1 t \<and> p 0 = s) \<in> cube 1 t" using 1 someI_ex[of "\<lambda>p. p \<in> cube 1 t \<and> p 0 = s"] assms by blast
 qed
 
-text \<open>The following lemma relates $1$-dimensional subspaces to lines, thus establishing a bidirectional correspondence between the two together with $\ref{lem:line_is_dim1_subspace}$\<close>
+text \<open>The following lemma relates $1$-dimensional subspaces to lines, thus establishing a bidirectional correspondence between the two together with \<open>line_is_dim1_subspace\<close>.\<close>
 lemma dim1_subspace_is_line: 
   assumes "t > 0" 
     and "is_subspace S 1 n t" 
@@ -694,7 +694,7 @@ proof-
     have "{..1::nat} = {0, 1}" by auto
     then have B_props: "B 0 \<union> B 1 = {..<N'} \<and> (B 0 \<inter> B 1 = {})" using Bf_defs unfolding disjoint_family_on_def by auto
     define L' where "L' \<equiv> L(t:=(\<lambda>j. if j \<in> B 1 then L (t - 1) j else (if j \<in> B 0 then t else undefined)))"
-    text \<open>S1 is the subspace version of L'.\<close>
+    text \<open>\<open>S1\<close> is the corresponding $1$-dimensional subspace of \<open>L'\<close>.\<close>
     define S1 where "S1 \<equiv> restrict (\<lambda>y. L' (y (0::nat))) (cube 1 (t+1))"
     have line_prop: "is_line L' N' (t + 1)"
     proof-
@@ -1977,6 +1977,6 @@ next
   case (Suc t)
   then show ?case using hj_t_1[of r] hj_imp_lhj[of t] lhj_imp_hj[of t r] by auto
 qed
-text \<open>We offer a justification for having excluded the special case $r = t = 0$ from the statement of the main theorem @{thm hales_jewett}. The exclusion is a consequence of the fact that colourings are defined as members of the function set \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>, which for $r = t = 0$ means there's a dummy colouring \<open>\<lambda>_. undefined\<close>, although \<open>cube n 0 = {}\<close> for $n > 0$. Hence, in this case, no line exists at all (let alone a monochromatic one). This means \<open>hj 0 0 = False\<close>, but only because of the quirky behaviour of the FuncSet \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>. This could have been circumvented by letting colourings $\chi$ be arbitrary functions with only the constraint \<open>\<chi> ` cube n t \<subseteq> {..<r}\<close>. We avoided this in order to have consistency with the cube's definition, for which FuncSets were crucial because the proof makes use of the cardinality of the cube---the constraint \<open>x ` {..<n} \<subseteq> {..<t}\<close> would not have sufficed there, as there are infinitely many functions over the naturals satisfying it.\<close>
+text \<open>We offer a justification for having excluded the special case $r = t = 0$ from the statement of the main theorem @{thm hales_jewett}. The exclusion is a consequence of the fact that colourings are defined as members of the function set \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>, which for $r = t = 0$ means there's a dummy colouring \<open>\<lambda>_. undefined\<close>, even though \<open>cube n 0 = {}\<close> for $n > 0$. Hence, in this case, no line exists at all (let alone one monochromatic under the aforementioned colouring). This means \<open>hj 0 0 \<Longrightarrow> False\<close>, but only because of the quirky behaviour of the FuncSet \<open>cube n t \<rightarrow>\<^sub>E {..<r}\<close>. This could have been circumvented by letting colourings $\chi$ be arbitrary functions with only the constraint \<open>\<chi> ` cube n t \<subseteq> {..<r}\<close>. We avoided this in order to have consistency with the cube's definition, for which FuncSets were crucial because the proof makes use of the cardinality of the cube---the constraint \<open>x ` {..<n} \<subseteq> {..<t}\<close> for elements \<open>x\<close> of $C^n_t$ would not have sufficed there, as there are infinitely many functions over the naturals satisfying it.\<close>
 
 end
