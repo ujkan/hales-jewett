@@ -4,20 +4,23 @@ begin
 
 section \<open>Preliminaries\<close>
 
-text \<open>The Hales-Jewett Theorem is at its core a statement about sets of tuples called the $n$-dimensional cube over $t$ elements; i.e.\ the set $\{0,\ldots,t - 1\}^n$, where $\{0,\ldots,t - 1\}$ is called the base. 
+text \<open>The Hales--Jewett Theorem is at its core a statement about sets of tuples called the $n$-dimensional cube over $t$ elements; i.e.\ the set $\{0,\ldots,t - 1\}^n$, where $\{0,\ldots,t - 1\}$ is called the base. 
 We use functions $f : \{0,\ldots,n - 1\} \rightarrow \{0,\ldots,t - 1\}$ instead of tuples because they're easier to
  deal with. The set of tuples then becomes the function space $\{0,\ldots,t - 1\}^{\{0,\ldots,n - 1\}}$.
 Furthermore, $r$-colourings are denoted by mappings from the function space to the set $\{0,\ldots, r-1\}$.\<close>
 
 subsection \<open>The $n$-dimensional cube over $t$ elements\<close>
 
-text \<open>Function spaces in Isabelle are supported by the library component FuncSet. In essence, \<open>f \<in> A \<rightarrow>\<^sub>E B\<close> means \<open>a \<in> A \<Longrightarrow> f a \<in> B\<close> and \<open>a \<notin> A \<Longrightarrow> f a = undefined\<close>\<close>
+text \<open>
+  Function spaces in Isabelle are supported by the library component FuncSet.
+  In essence, \<^prop>\<open>f \<in> A \<rightarrow>\<^sub>E B\<close> means \<^prop>\<open>a \<in> A \<Longrightarrow> f a \<in> B\<close> and \<^prop>\<open>a \<notin> A \<Longrightarrow> f a = undefined\<close>
+\<close>
 
 text \<open>The (canonical) $n$-dimensional cube over $t$ elements is defined in the following using the variables:
 
 \begin{tabular}{lcp{8cm}}
-$n$:& \<open>nat\<close>& dimension\\
-$t$:&  \<open>nat\<close>& number of elements\\
+$n$:& \<^typ>\<open>nat\<close>& dimension\\
+$t$:& \<^typ>\<open>nat\<close>& number of elements\\
 \end{tabular}\<close>
 definition cube :: "nat \<Rightarrow> nat \<Rightarrow> (nat \<Rightarrow> nat) set"
   where "cube n t \<equiv> {..<n} \<rightarrow>\<^sub>E {..<t}"
@@ -43,11 +46,11 @@ text \<open>A simplifying definition for the 0-dimensional cube.\<close>
 lemma cube0_alt_def: "cube 0 t = {\<lambda>x. undefined}"
   unfolding cube_def by simp
 
-text \<open>The cardinality of the n-dimensional over t elements is simply a consequence of the overarching definition of the cardinality of function spaces (over finite sets)\<close>
+text \<open>The cardinality of the \<open>n\<close>-dimensional over \<open>t\<close> elements is simply a consequence of the overarching definition of the cardinality of function spaces (over finite sets)\<close>
 lemma cube_card: "card ({..<n::nat} \<rightarrow>\<^sub>E {..<t::nat}) = t ^ n"
   by (simp add: card_PiE)
 
-text \<open>A simplifying definition for the n-dimensional cube over a single element, i.e.\ the single n-dimensional point (0, 0, ..., 0).\<close>
+text \<open>A simplifying definition for the \<open>n\<close>-dimensional cube over a single element, i.e.\ the single \<open>n\<close>-dimensional point \<open>(0, \<dots>, 0)\<close>.\<close>
 lemma cube1_alt_def: "cube n 1 = {\<lambda>x\<in>{..<n}. 0}" unfolding cube_def by (simp add: lessThan_Suc)
 
 subsection \<open>Lines\<close>
@@ -79,7 +82,7 @@ proof -
 qed
 
 
-text \<open>The next two lemmas are used to simplify proofs by enabling us to use the resulting facts directly. This avoids having to unfold the definition of \<open>is_line\<close> each time.\<close>
+text \<open>The next two lemmas are used to simplify proofs by enabling us to use the resulting facts directly. This avoids having to unfold the definition of \<^const>\<open>is_line\<close> each time.\<close>
 lemma line_points_in_cube: 
   assumes "is_line L n t" 
     and "s < t" 
@@ -97,8 +100,8 @@ lemma line_points_in_cube_unfolded:
 text \<open>The incrementation of all elements of a set is defined in the following using the variables:
 
 \begin{tabular}{llp{8cm}}
-$n$:& \<open>nat\<close>& increment size\\
-$S$:& \<open>nat set\<close>& set\\
+$n$:& \<^typ>\<open>nat\<close>& increment size\\
+$S$:& \<^typ>\<open>nat set\<close>& set\\
 \end{tabular}\<close>
 definition set_incr :: "nat \<Rightarrow> nat set \<Rightarrow> nat set"
   where
@@ -134,10 +137,10 @@ subsection \<open>Subspaces\<close>
 text \<open>The property of being a $k$-dimensional subspace of $C^n_t$ is defined in the following using the variables:
 
 \begin{tabular}{llp{8cm}}
-$S$:& \<open>(nat \<Rightarrow> nat) \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the subspace\\
-$k$:& \<open>nat\<close>& the dimension of the subspace\\
-$n$:& \<open>nat\<close>& the dimension of the cube\\
-$t$:& \<open>nat\<close>& the size of the cube's base
+$S$:& \<^typ>\<open>(nat \<Rightarrow> nat) \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the subspace\\
+$k$:& \<^typ>\<open>nat\<close>& the dimension of the subspace\\
+$n$:& \<^typ>\<open>nat\<close>& the dimension of the cube\\
+$t$:& \<^typ>\<open>nat\<close>& the size of the cube's base
 \end{tabular}\<close>
 definition is_subspace
   where "is_subspace S k n t \<equiv> (\<exists>B f. disjoint_family_on B {..k} \<and> \<Union>(B ` {..k}) = {..<n} \<and> ({} \<notin> B ` {..<k}) \<and> f \<in> (B k) \<rightarrow>\<^sub>E {..<t} \<and> S \<in> (cube k t) \<rightarrow>\<^sub>E (cube n t) \<and> (\<forall>y \<in> cube k t. (\<forall>i \<in> B k. S y i = f i) \<and> (\<forall>j<k. \<forall>i \<in> B j. (S y) i = y j)))"
@@ -187,7 +190,7 @@ proof-
 qed
 
 subsection \<open>Equivalence classes\<close>
-text \<open>Defining the equivalence classes of (cube n (t + 1)). \{classes n t 0, ..., classes n t n\}\<close>
+text \<open>Defining the equivalence classes of \<^term>\<open>cube n (t + 1)\<close>: \<open>{classes n t 0, \<dots>, classes n t n}\<close>\<close>
 definition classes
   where "classes n t \<equiv> (\<lambda>i. {x . x \<in> (cube n (t + 1)) \<and> (\<forall>u \<in> {(n-i)..<n}. x u = t) \<and> t \<notin> x ` {..<(n - i)}})"
 
@@ -444,8 +447,8 @@ lemma line_is_dim1_subspace:
 text \<open>The key property of the existence of a minimal dimension $N$, such that for any $r$-colouring in $C^{N'}_t$ (for $N' \geq N$) there exists a monochromatic line is defined in the following using the variables:
 
 \begin{tabular}{llp{8cm}}
-$r$:& \<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the number of colours\\
-$t$:& \<open>nat\<close>& the size of of the base
+$r$:& \<^typ>\<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the number of colours\\
+$t$:& \<^typ>\<open>nat\<close>& the size of of the base
 \end{tabular}\<close>
 definition hj 
   where "hj r t \<equiv> (\<exists>N>0. \<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' t) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>L. \<exists>c<r. is_line L N' t \<and> (\<forall>y \<in> L ` {..<t}. \<chi> y = c)))"
@@ -453,9 +456,9 @@ definition hj
 text \<open>The key property of the existence of a minimal dimension $N$, such that for any $r$-colouring in $C^{N'}_t$ (for $N' \geq N$) there exists a layered subspace of dimension $k$ is defined in the following using the variables:
 
 \begin{tabular}{llp{8cm}}
-$r$:& \<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the number of colours\\
-$t$:& \<open>nat\<close>& the size of of the base\\
-$k$:& \<open>nat\<close>& the dimension of the subspace
+$r$:& \<^typ>\<open>nat \<Rightarrow> (nat \<Rightarrow> nat)\<close>& the number of colours\\
+$t$:& \<^typ>\<open>nat\<close>& the size of of the base\\
+$k$:& \<^typ>\<open>nat\<close>& the dimension of the subspace
 \end{tabular}\<close>
 definition lhj
   where "lhj r t k \<equiv> (\<exists>N > 0. \<forall>N' \<ge> N. \<forall>\<chi>. \<chi> \<in> (cube N' (t + 1)) \<rightarrow>\<^sub>E {..<r::nat} \<longrightarrow> (\<exists>S. layered_subspace S k N' t r \<chi>))"
@@ -665,7 +668,7 @@ lemma subspace_elems_embed:
 
 
 section \<open>Core proofs\<close>
-text\<open>The numbering of the theorems has been borrowed from \cite{thebook}.\<close>
+text\<open>The numbering of the theorems has been borrowed from the textbook~\cite{thebook}.\<close>
 
 subsection \<open>Theorem 4\<close>
 subsubsection \<open>Base case of Theorem 4\<close>
@@ -1007,7 +1010,7 @@ subsubsection \<open>Induction step of theorem 4\<close>
 
 text \<open>The proof has four parts:
 \begin{enumerate}
-\item We obtain two layered subspaces of dimension 1 and k (respectively), whose existence is guaranteed by the assumption lhj (i.e.\ the induction hypothesis). Additionally, we prove some useful facts about these.
+\item We obtain two layered subspaces of dimension 1 and k (respectively), whose existence is guaranteed by the assumption \<^const>\<open>lhj\<close> (i.e.\ the induction hypothesis). Additionally, we prove some useful facts about these.
 \item We construct a \<open>k+1\<close>-dimensional subspace with the goal of showing that it is layered.
 \item We prove that our construction is a subspace in the first place.
 \item We prove that it is a layered subspace.
@@ -1042,7 +1045,7 @@ proof-
     qed
 
     paragraph \<open>Part 1: Obtaining the subspaces \<open>L\<close> and \<open>S\<close>\\\<close>
-    text \<open>Recall that @{term lhj} claims the existence of a layered subspace for any colouring (of a fixed size, where the size of a colouring refers to the number of colours). Therefore, the colourings have to be defined first, before the layered subspaces can be obtained. The colouring \<open>\<chi>L\<close> here is $\chi^*$ in \cite{thebook}, an s-colouring; see the fact \<open>s_coloured\<close> a couple of lines below.\<close>
+    text \<open>Recall that @{term lhj} claims the existence of a layered subspace for any colouring (of a fixed size, where the size of a colouring refers to the number of colours). Therefore, the colourings have to be defined first, before the layered subspaces can be obtained. The colouring \<open>\<chi>L\<close> here is $\chi^*$ in the book~\cite{thebook}, an \<open>s\<close>-colouring; see the fact \<open>s_coloured\<close> a couple of lines below.\<close>
 
     define \<chi>L where "\<chi>L \<equiv> (\<lambda>x \<in> cube n (t+1). (\<lambda>y \<in> cube m (t + 1). \<chi> (join x y n m)))"
     have A: "\<forall>x \<in> cube n (t+1). \<forall>y \<in> cube m (t+1). \<chi> (join x y n m) \<in> {..<r}"
@@ -1075,7 +1078,7 @@ proof-
     define L_line where "L_line \<equiv> (\<lambda>s\<in>{..<t+1}. L (SOME p. p\<in>cube 1 (t+1) \<and> p 0 = s))"
     have L_line_base_prop: "\<forall>s \<in> {..<t+1}. L_line s \<in> cube n (t+1)" using assms(1) dim1_subspace_is_line[of "t+1" "L" "n"] L_prop line_points_in_cube[of L_line n "t+1"] unfolding layered_subspace_def L_line_def by auto
 
-    text \<open>Here, \<open>\<chi>S\<close> is $\chi^{**}$ in \cite{thebook}, an r-colouring.\<close>
+    text \<open>Here, \<open>\<chi>S\<close> is $\chi^{**}$ in the book~\cite{thebook}, an r-colouring.\<close>
     define \<chi>S where "\<chi>S \<equiv> (\<lambda>y\<in>cube m (t+1). \<chi> (join (L_line 0) y n m))"
     have "\<chi>S \<in> (cube m (t + 1)) \<rightarrow>\<^sub>E {..<r::nat}"
     proof
@@ -1088,13 +1091,13 @@ proof-
     	moreover have "join (L_line 0) x n m \<in> cube (n + m) (t+1)" using join_cubes a calculation(2, 5) by auto
     	ultimately show "\<chi>S x \<in> {..<r}" using A a by fastforce
     qed (auto simp: \<chi>S_def)
-    text \<open>S is the $k$-dimensional layered subspace that arises as a consequence of the induction hypothesis. Note that the colouring is \<open>\<chi>S\<close>, an r-colouring.\<close>
+    text \<open>\<open>S\<close> is the $k$-dimensional layered subspace that arises as a consequence of the induction hypothesis. Note that the colouring is \<open>\<chi>S\<close>, an \<open>r\<close>-colouring.\<close>
     then obtain S where S_prop: "layered_subspace S k m t r \<chi>S" using assms(4) m_props by blast
     text \<open>Remark: \<open>L_Line i\<close> returns the i-th point of the line.\<close>
 
     paragraph \<open>Part 2: Constructing the $(k+1)$-dimensional subspace \<open>T\<close>\\\<close>
 
-    text \<open>Below, \<open>Tset\<close> is the set as defined in \cite{thebook}. It represents the $(k+1)$-dimensional subspace. In this construction, subspaces (e.g. \<open>T\<close>) are functions whose image is a set. See the fact \<open>im_T_eq_Tset\<close> below.\<close>
+    text \<open>Below, \<open>Tset\<close> is the set as defined in the book~\cite{thebook}. It represents the $(k+1)$-dimensional subspace. In this construction, subspaces (e.g. \<open>T\<close>) are functions whose image is a set. See the fact \<open>im_T_eq_Tset\<close> below.\<close>
 
     text\<open>Having obtained our subspaces \<open>S\<close> and \<open>L\<close>, we define the $(k+1)$-dimensional subspace very straightforwardly Namely, T = L \times S. Since we represent tuples by function sets, we need an appropriate operator that mirrors the Cartesian product $\times$ for these. We call this \<open>join\<close> and define it for elements of a function set.\<close> 
     define Tset where "Tset \<equiv> {join (L_line i) s n m | i s . i \<in> {..<t+1} \<and> s \<in> S ` (cube k (t+1))}"
