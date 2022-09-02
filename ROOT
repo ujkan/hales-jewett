@@ -1,7 +1,7 @@
 chapter AFP
 
 session "Hales_Jewett" (AFP) = HOL +
-  options [timeout = 600]
+  options [document = pdf, document_output = generated, timeout = 600]
   sessions
     "HOL-Library"
   theories
